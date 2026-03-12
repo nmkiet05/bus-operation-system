@@ -1,0 +1,16 @@
+# IDEs
+.idea
+.vscode
+*.swp
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp
+tmp/
+temp/
