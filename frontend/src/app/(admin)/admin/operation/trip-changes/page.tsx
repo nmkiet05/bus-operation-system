@@ -17,6 +17,7 @@ import {
     TripChangeRequest,
     tripChangeService,
 } from "@/features/admin/services/trip-change-service";
+import { tripService } from "@/features/admin/services/trip-service";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -34,8 +35,8 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 
 // Status config
@@ -106,8 +107,8 @@ export default function TripChangesPage() {
     const [rejectTarget, setRejectTarget] = useState<TripChangeRequest | null>(null);
     const [rejectReason, setRejectReason] = useState("");
     const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
-    const [incidentTripId, setIncidentTripId] = useState("");
-    const [incidentDriverId, setIncidentDriverId] = useState("");
+    const [incidentTripId, setIncidentTripId] = useState<number | null>(null);
+    const [incidentDriverId, setIncidentDriverId] = useState<number | null>(null);
     const [incidentType, setIncidentType] = useState("FATIGUE_SWAP");
     const [incidentGps, setIncidentGps] = useState("");
     const [incidentReason, setIncidentReason] = useState("");
@@ -118,6 +119,17 @@ export default function TripChangesPage() {
     const { data: requests = [], isLoading, refetch } = useQuery({
         queryKey: ["trip-changes"],
         queryFn: () => tripChangeService.getAll(),
+    });
+
+    const { data: runningTrips = [], isLoading: isLoadingRunningTrips } = useQuery({
+        queryKey: ["incident-running-trips"],
+        queryFn: () => tripService.getTrips({ status: "RUNNING" }),
+    });
+
+    const { data: incidentDrivers = [], isLoading: isLoadingIncidentDrivers } = useQuery({
+        queryKey: ["incident-available-drivers", incidentTripId],
+        queryFn: () => tripService.getAvailableDriversForTrip(incidentTripId!),
+        enabled: !!incidentTripId,
     });
 
     // Filter
@@ -199,8 +211,8 @@ export default function TripChangesPage() {
         onSuccess: () => {
             toast.success("Đã tạo sự cố dọc đường và gửi hậu kiểm");
             setIncidentDialogOpen(false);
-            setIncidentTripId("");
-            setIncidentDriverId("");
+            setIncidentTripId(null);
+            setIncidentDriverId(null);
             setIncidentType("FATIGUE_SWAP");
             setIncidentGps("");
             setIncidentReason("");
@@ -257,17 +269,14 @@ export default function TripChangesPage() {
     };
 
     const handleSubmitIncident = () => {
-        const tripId = Number(incidentTripId);
-        const newDriverId = Number(incidentDriverId);
-
-        if (!tripId || !newDriverId || !incidentReason.trim()) {
-            toast.error("Vui lòng nhập Trip ID, Driver ID và lý do sự cố");
+        if (!incidentTripId || !incidentDriverId || !incidentReason.trim()) {
+            toast.error("Vui lòng chọn chuyến, tài xế thay thế và nhập lý do sự cố");
             return;
         }
 
         incidentMutation.mutate({
-            tripId,
-            newDriverId,
+            tripId: incidentTripId,
+            newDriverId: incidentDriverId,
             incidentType: incidentType as "FATIGUE_SWAP" | "DRIVER_HEALTH" | "VEHICLE_BREAKDOWN" | "TRAFFIC_ACCIDENT",
             incidentGps: incidentGps.trim() || undefined,
             reason: incidentReason.trim(),
@@ -333,23 +342,52 @@ export default function TripChangesPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
-                        <div className="space-y-1.5">
-                            <p className="text-xs font-medium text-gray-600">Trip ID</p>
-                            <Input
-                                type="number"
-                                placeholder="Ví dụ: 123"
-                                value={incidentTripId}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncidentTripId(e.target.value)}
-                            />
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-xs font-medium text-gray-600">Chuyến đang chạy</p>
+                            <Select
+                                value={incidentTripId ? String(incidentTripId) : undefined}
+                                onValueChange={(value) => {
+                                    const nextTripId = Number(value);
+                                    setIncidentTripId(nextTripId);
+                                    setIncidentDriverId(null);
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={isLoadingRunningTrips ? "Đang tải chuyến..." : "Chọn chuyến RUNNING"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {runningTrips.map((trip) => (
+                                        <SelectItem key={trip.id} value={String(trip.id)}>
+                                            {trip.code} - {trip.routeName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <div className="space-y-1.5">
-                            <p className="text-xs font-medium text-gray-600">Driver ID thay thế</p>
-                            <Input
-                                type="number"
-                                placeholder="Ví dụ: 45"
-                                value={incidentDriverId}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncidentDriverId(e.target.value)}
-                            />
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-xs font-medium text-gray-600">Tài xế thay thế</p>
+                            <Select
+                                value={incidentDriverId ? String(incidentDriverId) : undefined}
+                                onValueChange={(value) => setIncidentDriverId(Number(value))}
+                                disabled={!incidentTripId || isLoadingIncidentDrivers}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue
+                                        placeholder={!incidentTripId
+                                            ? "Chọn chuyến trước"
+                                            : isLoadingIncidentDrivers
+                                                ? "Đang tải tài xế..."
+                                                : "Chọn tài xế khả dụng"}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {incidentDrivers.map((driver) => (
+                                        <SelectItem key={driver.id} value={String(driver.id)}>
+                                            {driver.fullName} - {driver.phone || "Không có SĐT"}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-1.5 sm:col-span-2">
                             <p className="text-xs font-medium text-gray-600">Loại sự cố</p>

@@ -193,3 +193,35 @@ Bổ sung khả năng tạo yêu cầu sự cố dọc đường trực tiếp t
 ### Ghi chú thiết kế
 - Lát này dùng input trực tiếp theo ID để giữ thay đổi nhỏ và tránh kéo thêm phụ thuộc data source mới (trip/driver picker) trong cùng phân đoạn.
 - Có thể nâng cấp ở lát tiếp theo bằng selector dữ liệu thật (running trip + driver khả dụng) nếu cần trải nghiệm tốt hơn.
+
+---
+
+## Phần 05 — Hoàn thiện FE flow (lát 3: nâng UX incident bằng dữ liệu thật)
+
+### Mục tiêu
+Giảm nhập tay ID gây lỗi thao tác bằng cách chuyển dialog incident sang chọn dữ liệu thật từ hệ thống.
+
+### Thay đổi
+1. Nâng cấp nguồn dữ liệu cho dialog incident:
+- File: `frontend/src/app/(admin)/admin/operation/trip-changes/page.tsx`
+- Bổ sung query:
+  - Danh sách chuyến `RUNNING` qua `tripService.getTrips({ status: "RUNNING" })`
+  - Danh sách tài xế khả dụng theo chuyến qua `tripService.getAvailableDriversForTrip(tripId)`
+
+2. Chuyển input ID thủ công thành select:
+- `Trip ID` -> `Select chuyến đang chạy`
+- `Driver ID thay thế` -> `Select tài xế khả dụng`
+- Giữ trường `GPS` và `Lý do sự cố` như cũ.
+
+3. Cập nhật validate submit sự cố:
+- Bắt buộc có:
+  - chuyến đã chọn
+  - tài xế thay thế đã chọn
+  - lý do sự cố
+
+### Kiểm tra
+- Diagnostics file FE sau chỉnh sửa: **No errors found**.
+
+### Ghi chú thiết kế
+- Lát này vẫn giữ phạm vi thay đổi trong một màn hình để kiểm soát rủi ro.
+- Chưa bổ sung bộ lọc/selector nâng cao (ví dụ theo bến hoặc theo tuyến) để tránh mở rộng phạm vi ngoài mục tiêu lát nhỏ.
