@@ -127,3 +127,36 @@ Thêm ràng buộc dữ liệu ở DB để giảm sai lệch enum/runtime giữ
 ### Ghi chú thiết kế
 - Phần 04 chỉ đồng bộ hợp đồng và guard mức tối thiểu, chưa triển khai đầy đủ UI hậu kiểm/incident/rollback theo từng case.
 - Phần mở rộng hành vi UI sẽ được thực hiện ở phân đoạn tiếp theo để giữ rủi ro thấp.
+
+---
+
+## Phần 05 — Hoàn thiện FE flow (lát 1: review + rollback)
+
+### Mục tiêu
+Thêm khả năng thao tác nghiệp vụ thực tế ngay trên màn hình Trip Changes cho hai luồng quan trọng:
+- Hậu kiểm yêu cầu khẩn cấp đã auto-execute
+- Hoàn tác yêu cầu đã duyệt
+
+### Thay đổi
+1. Bổ sung mutation cho hậu kiểm và hoàn tác:
+- File: `frontend/src/app/(admin)/admin/operation/trip-changes/page.tsx`
+- Thêm:
+  - `reviewMutation` gọi `tripChangeService.review(...)`
+  - `rollbackMutation` gọi `tripChangeService.rollback(...)`
+
+2. Bổ sung hành vi UI:
+- Request emergency đang chờ hậu kiểm (`isEmergency` + `PENDING/ESCALATED`):
+  - Hiển thị nút `Hậu kiểm đạt`
+  - Với vùng `CRITICAL` hiển thị thêm `Hậu kiểm không đạt`
+- Request `APPROVED`:
+  - Hiển thị nút `Hoàn tác`
+
+3. Bổ sung guard reject trên nút thao tác:
+- Vùng auto-execute (`CRITICAL/DEPARTED/MID_ROUTE`) sẽ disable nút `Từ chối` ở nhánh duyệt thường.
+
+### Kiểm tra
+- Diagnostics file FE sau chỉnh sửa: **No errors found**.
+
+### Ghi chú thiết kế
+- Lát 1 tập trung vào hai thao tác có ảnh hưởng trực tiếp vận hành (review/rollback), chưa thêm form tạo incident tại UI.
+- Luồng `incident` sẽ triển khai ở lát tiếp theo để giữ thay đổi nhỏ và dễ rollback.

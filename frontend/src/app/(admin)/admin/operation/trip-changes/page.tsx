@@ -139,6 +139,31 @@ export default function TripChangesPage() {
         },
     });
 
+    const reviewMutation = useMutation({
+        mutationFn: ({ id, approved, notes }: { id: number; approved: boolean; notes?: string }) =>
+            tripChangeService.review(id, approved, notes),
+        onSuccess: (_data, vars) => {
+            toast.success(vars.approved ? "Đã hậu kiểm: đạt" : "Đã hậu kiểm: không đạt");
+            queryClient.invalidateQueries({ queryKey: ["trip-changes"] });
+        },
+        onError: (error: unknown) => {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err?.response?.data?.message || "Lỗi hậu kiểm yêu cầu");
+        },
+    });
+
+    const rollbackMutation = useMutation({
+        mutationFn: (id: number) => tripChangeService.rollback(id),
+        onSuccess: () => {
+            toast.success("Đã hoàn tác yêu cầu");
+            queryClient.invalidateQueries({ queryKey: ["trip-changes"] });
+        },
+        onError: (error: unknown) => {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err?.response?.data?.message || "Lỗi hoàn tác yêu cầu");
+        },
+    });
+
     const handleApprove = (req: TripChangeRequest) => {
         if (!confirm(`Duyệt yêu cầu ${CHANGE_TYPE_LABELS[req.changeType] || req.changeType}?`)) return;
         approveMutation.mutate(req.id);
@@ -161,6 +186,26 @@ export default function TripChangesPage() {
             return;
         }
         rejectMutation.mutate({ id: rejectTarget.id, reason: rejectReason });
+    };
+
+    const handleReview = (req: TripChangeRequest, approved: boolean) => {
+        const note = prompt(
+            approved
+                ? "Nhập ghi chú hậu kiểm (không bắt buộc):"
+                : "Nhập lý do hậu kiểm không đạt:"
+        );
+
+        if (!approved && !note?.trim()) {
+            toast.error("Vui lòng nhập lý do hậu kiểm không đạt");
+            return;
+        }
+
+        reviewMutation.mutate({ id: req.id, approved, notes: note?.trim() || undefined });
+    };
+
+    const handleRollback = (req: TripChangeRequest) => {
+        if (!confirm(`Hoàn tác yêu cầu ${CHANGE_TYPE_LABELS[req.changeType] || req.changeType}?`)) return;
+        rollbackMutation.mutate(req.id);
     };
 
     // Stats
@@ -308,6 +353,10 @@ export default function TripChangesPage() {
                                     const StatusIcon = statusCfg.icon;
                                     const zoneCfg = ZONE_CONFIG[req.urgencyZone];
                                     const isPending = req.status === "PENDING";
+                                    const isApproved = req.status === "APPROVED";
+                                    const isAutoExecuteZone = ["CRITICAL", "DEPARTED", "MID_ROUTE"].includes(req.urgencyZone);
+                                    const isEmergencyReviewCandidate = Boolean(req.isEmergency) && (isPending || req.status === "ESCALATED");
+                                    const canReviewReject = req.urgencyZone === "CRITICAL";
 
                                     return (
                                         <tr key={req.id} className={cn(
@@ -377,7 +426,28 @@ export default function TripChangesPage() {
 
                                             {/* Thao tác */}
                                             <td className="py-3.5 px-4 text-center">
-                                                {isPending ? (
+                                                {isEmergencyReviewCandidate ? (
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            onClick={() => handleReview(req, true)}
+                                                            disabled={reviewMutation.isPending}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                                                        >
+                                                            <CheckCircle2 className="h-3 w-3" />
+                                                            Hậu kiểm đạt
+                                                        </button>
+                                                        {canReviewReject && (
+                                                            <button
+                                                                onClick={() => handleReview(req, false)}
+                                                                disabled={reviewMutation.isPending}
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                                                            >
+                                                                <XCircle className="h-3 w-3" />
+                                                                Hậu kiểm không đạt
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ) : isPending ? (
                                                     <div className="flex items-center justify-center gap-1">
                                                         <button
                                                             onClick={() => handleApprove(req)}
@@ -389,10 +459,22 @@ export default function TripChangesPage() {
                                                         </button>
                                                         <button
                                                             onClick={() => handleRejectOpen(req)}
+                                                            disabled={isAutoExecuteZone || rejectMutation.isPending}
                                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                                         >
                                                             <XCircle className="h-3 w-3" />
                                                             Từ chối
+                                                        </button>
+                                                    </div>
+                                                ) : isApproved ? (
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            onClick={() => handleRollback(req)}
+                                                            disabled={rollbackMutation.isPending}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors disabled:opacity-50"
+                                                        >
+                                                            <ArrowLeftRight className="h-3 w-3" />
+                                                            Hoàn tác
                                                         </button>
                                                     </div>
                                                 ) : (
