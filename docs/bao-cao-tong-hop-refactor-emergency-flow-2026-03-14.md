@@ -93,3 +93,37 @@ Thêm ràng buộc dữ liệu ở DB để giảm sai lệch enum/runtime giữ
 1. Commit phân đoạn 03 (backend + cập nhật con trỏ root).
 2. Sang phần 04: đồng bộ contract BE-FE (status/type/metadata hậu kiểm).
 3. Bắt đầu hoàn thiện FE flow 5 vùng theo style hiện có của dự án (incident/review/rollback + guard theo vùng).
+
+---
+
+## Phần 04 — Đồng bộ contract FE với BE (status/type/service)
+
+### Mục tiêu
+Đồng bộ nhanh hợp đồng FE với BE ở lớp type/service trước khi mở rộng UI flow đầy đủ, đảm bảo không lệch status/type và sẵn sàng gọi endpoint mới.
+
+### Thay đổi
+1. Chuẩn hóa type trong service Trip Change:
+- File: `frontend/src/features/admin/services/trip-change-service.ts`
+- Bổ sung type tường minh:
+  - `TripChangeType`
+  - `TripChangeStatus`
+  - `ChangeUrgencyZone`
+  - `IncidentType`
+- Cập nhật `TripChangeRequest` và `CreateTripChangeRequest` theo type chuẩn.
+
+2. Bổ sung method service khớp endpoint BE hiện có:
+- `review(id, approved, notes?)` -> `POST /operation/trip-changes/{id}/review`
+- `incident(request, incidentType, incidentGps?)` -> `POST /operation/trip-changes/incident`
+
+3. Đồng bộ hiển thị status/type ở màn `trip-changes`:
+- File: `frontend/src/app/(admin)/admin/operation/trip-changes/page.tsx`
+- Thêm trạng thái `ESCALATED` vào `STATUS_CONFIG` và `STATUS_FILTERS`.
+- Bổ sung label cho `REPLACE_CO_DRIVER`, `REPLACE_ATTENDANT`, `INCIDENT_SWAP`.
+- Thêm guard UX: chặn mở reject dialog cho vùng không cho phép reject.
+
+### Kiểm tra
+- Kiểm tra diagnostics cho 2 file FE đã sửa -> **No errors found**.
+
+### Ghi chú thiết kế
+- Phần 04 chỉ đồng bộ hợp đồng và guard mức tối thiểu, chưa triển khai đầy đủ UI hậu kiểm/incident/rollback theo từng case.
+- Phần mở rộng hành vi UI sẽ được thực hiện ở phân đoạn tiếp theo để giữ rủi ro thấp.

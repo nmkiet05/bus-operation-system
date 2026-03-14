@@ -49,6 +49,11 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: Re
         className: "bg-green-50 text-green-700 border-green-200",
         icon: CheckCircle2,
     },
+    ESCALATED: {
+        label: "Đã escalate",
+        className: "bg-orange-50 text-orange-700 border-orange-200",
+        icon: AlertTriangle,
+    },
     REJECTED: {
         label: "Từ chối",
         className: "bg-red-50 text-red-600 border-red-200",
@@ -59,22 +64,14 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: Re
         className: "bg-gray-50 text-gray-600 border-gray-200",
         icon: XCircle,
     },
-    AUTO_APPROVED: {
-        label: "Tự động duyệt",
-        className: "bg-blue-50 text-blue-700 border-blue-200",
-        icon: ShieldCheck,
-    },
-    ROLLBACK: {
-        label: "Đã rollback",
-        className: "bg-purple-50 text-purple-700 border-purple-200",
-        icon: ArrowLeftRight,
-    },
 };
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
     REPLACE_DRIVER: "Đổi tài xế",
+    REPLACE_CO_DRIVER: "Đổi tài xế phụ",
+    REPLACE_ATTENDANT: "Đổi nhân viên phục vụ",
     REPLACE_BUS: "Đổi xe",
-    REPLACE_BOTH: "Đổi cả hai",
+    INCIDENT_SWAP: "Sự cố dọc đường",
     DRIVER: "Đổi tài xế",
     BUS: "Đổi xe",
 };
@@ -90,6 +87,7 @@ const ZONE_CONFIG: Record<string, { label: string; className: string }> = {
 const STATUS_FILTERS = [
     { value: "ALL", label: "Tất cả" },
     { value: "PENDING", label: "Chờ duyệt" },
+    { value: "ESCALATED", label: "Đã escalate" },
     { value: "APPROVED", label: "Đã duyệt" },
     { value: "REJECTED", label: "Từ chối" },
 ];
@@ -147,6 +145,11 @@ export default function TripChangesPage() {
     };
 
     const handleRejectOpen = (req: TripChangeRequest) => {
+        const rejectableZones = ["STANDARD", "URGENT", "CRITICAL"];
+        if (req.urgencyZone && !rejectableZones.includes(req.urgencyZone)) {
+            toast.error(`Vùng ${req.urgencyZone} không cho phép từ chối. Vui lòng dùng hậu kiểm.`);
+            return;
+        }
         setRejectTarget(req);
         setRejectReason("");
         setRejectDialogOpen(true);
@@ -164,6 +167,7 @@ export default function TripChangesPage() {
     const stats = {
         total: requests.length,
         pending: requests.filter(r => r.status === "PENDING").length,
+        escalated: requests.filter(r => r.status === "ESCALATED").length,
         approved: requests.filter(r => r.status === "APPROVED").length,
         rejected: requests.filter(r => r.status === "REJECTED").length,
     };
@@ -233,6 +237,7 @@ export default function TripChangesPage() {
                 {[
                     { label: "Tổng", value: stats.total, color: "text-gray-900" },
                     { label: "Chờ duyệt", value: stats.pending, color: "text-amber-600" },
+                    { label: "Đã escalate", value: stats.escalated, color: "text-orange-600" },
                     { label: "Đã duyệt", value: stats.approved, color: "text-green-600" },
                     { label: "Từ chối", value: stats.rejected, color: "text-red-600" },
                 ].map(s => (
