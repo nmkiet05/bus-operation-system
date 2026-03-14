@@ -325,3 +325,58 @@ Loại bỏ mock dữ liệu master có rủi ro hiển thị sai trên UI quả
 ### Ghi chú thiết kế
 - Đây là lát dọn mock rủi ro thấp, không đổi behavior nghiệp vụ phức tạp.
 - Các mock lớn hơn (dashboard stats, payment simulate, booking placeholders) sẽ xử lý ở lát sau theo mức độ ưu tiên vận hành.
+
+---
+
+## Phần 07 — Dọn mock/placeholder (lát 2: dashboard stats bằng dữ liệu thật)
+
+### Mục tiêu
+Thay số liệu hardcode của dashboard admin bằng số liệu vận hành thật theo chuẩn nghiệp vụ đã thống nhất.
+
+### Định nghĩa metric áp dụng
+1. Trips Today:
+- `trip.departureDate = hôm nay` và `status != CANCELLED`
+2. Tickets Sold:
+- Đếm theo `ticket` của chuyến có `departureDate = hôm nay`
+- Chỉ tính booking `CONFIRMED`
+3. Active Drivers:
+- Tài xế có assignment trên chuyến hôm nay (không tính assignment/trip đã cancel)
+4. Revenue Today:
+- Tổng `payment_history.amount` có `status = SUCCESS` trong ngày
+
+### Thay đổi Backend
+1. Bổ sung API thống kê dashboard:
+- Controller mới: `backend/src/main/java/com/bus/system/modules/operation/controller/DashboardStatsController.java`
+- Endpoint: `GET /api/operation/dashboard/stats`
+
+2. Bổ sung service thống kê:
+- `backend/src/main/java/com/bus/system/modules/operation/service/DashboardStatsService.java`
+- `backend/src/main/java/com/bus/system/modules/operation/service/impl/DashboardStatsServiceImpl.java`
+
+3. Bổ sung DTO response:
+- `backend/src/main/java/com/bus/system/modules/operation/dto/response/DashboardStatsResponse.java`
+
+4. Bổ sung query repository:
+- `TripRepository`: đếm chuyến hôm nay không cancel
+- `TicketRepository`: đếm vé bán theo chuyến hôm nay + booking confirmed
+- `DriverAssignmentRepository`: đếm tài xế distinct có assignment hôm nay
+- Repository mới `PaymentHistoryRepository`: tổng doanh thu payment SUCCESS theo ngày
+
+### Thay đổi Frontend
+1. Tạo service dashboard:
+- `frontend/src/features/admin/services/dashboard-service.ts`
+- Gọi API: `/operation/dashboard/stats`
+
+2. Cập nhật trang dashboard admin:
+- `frontend/src/app/(admin)/admin/page.tsx`
+- Bỏ số cứng, thay bằng dữ liệu API thật
+- Thêm loading state cho từng ô số liệu
+- Format doanh thu theo `VND`
+
+### Kiểm tra
+- Backend compile: `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+- Diagnostics FE/BE các file thay đổi: **No errors found**.
+
+### Ghi chú thiết kế
+- Lát này chỉ thay số liệu tổng quan, không mở rộng biểu đồ nâng cao.
+- Label phụ hiển thị quy tắc tính để tránh hiểu sai KPI vận hành.

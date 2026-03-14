@@ -1,9 +1,11 @@
 "use client";
 
-import { BarChart3, Bus, Ticket, Users, ArrowRight, Calendar, UserCheck } from "lucide-react";
+import { BarChart3, Bus, Ticket, Users, ArrowRight, Calendar, UserCheck, Loader2 } from "lucide-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/services/http/axios";
+import { useQuery } from "@tanstack/react-query";
+import { dashboardService } from "@/features/admin/services/dashboard-service";
 
 /**
  * Trang Dashboard Admin chính
@@ -12,6 +14,11 @@ import axiosInstance from "@/services/http/axios";
 export default function AdminDashboardPage() {
     const router = useRouter();
 
+    const { data: statsData, isLoading: isLoadingStats } = useQuery({
+        queryKey: ["admin-dashboard-stats"],
+        queryFn: dashboardService.getTodayStats,
+    });
+
     // Kích hoạt API call nhẹ để check token hợp lệ (nếu token hết hạn -> interceptor đá ra ngoài)
     useEffect(() => {
         axiosInstance.get("/operation/trips?page=0&size=1").catch(() => {
@@ -19,33 +26,41 @@ export default function AdminDashboardPage() {
         });
     }, []);
 
-    // TODO: Kết nối API thống kê
+    const formatCurrency = (amount?: number) => {
+        const safeAmount = Number(amount || 0);
+        return new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+            maximumFractionDigits: 0,
+        }).format(safeAmount);
+    };
+
     const stats = [
         {
             label: "Chuyến hôm nay",
-            value: "24",
-            change: "+3",
+            value: String(statsData?.tripsToday ?? 0),
+            change: "Theo ngày khởi hành",
             icon: Bus,
             color: "bg-blue-500",
         },
         {
             label: "Vé đã bán",
-            value: "156",
-            change: "+12",
+            value: String(statsData?.ticketsSoldToday ?? 0),
+            change: "Booking CONFIRMED",
             icon: Ticket,
             color: "bg-green-500",
         },
         {
             label: "Tài xế hoạt động",
-            value: "18",
-            change: "0",
+            value: String(statsData?.activeDriversToday ?? 0),
+            change: "Có assignment hôm nay",
             icon: Users,
             color: "bg-purple-500",
         },
         {
             label: "Doanh thu hôm nay",
-            value: "12.5M",
-            change: "+8%",
+            value: formatCurrency(statsData?.revenueToday),
+            change: "Payment SUCCESS",
             icon: BarChart3,
             color: "bg-amber-500",
         },
@@ -110,11 +125,18 @@ export default function AdminDashboardPage() {
                                 <p className="text-sm text-gray-500">
                                     {stat.label}
                                 </p>
-                                <p className="text-2xl font-bold text-gray-900 mt-1">
-                                    {stat.value}
-                                </p>
+                                {isLoadingStats ? (
+                                    <p className="text-2xl font-bold text-gray-900 mt-1 inline-flex items-center gap-2">
+                                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                                        --
+                                    </p>
+                                ) : (
+                                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                                        {stat.value}
+                                    </p>
+                                )}
                                 <p className="text-xs text-green-600 mt-1 font-medium">
-                                    {stat.change} so với hôm qua
+                                    {stat.change}
                                 </p>
                             </div>
                             <div
