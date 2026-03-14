@@ -277,3 +277,28 @@ Tránh thay nhầm `DriverAssignment` khi xử lý đổi crew trong trường h
 
 ### Ghi chú thiết kế
 - Lát này chỉ chỉnh logic chọn bản ghi assignment cho chính xác nghiệp vụ, không thay đổi API contract.
+
+---
+
+## Phần 06 — Rà soát liên đới Operation Assignment (lát 3: consistency VehicleHandover)
+
+### Mục tiêu
+Đảm bảo trạng thái và audit reason của `VehicleHandover` nhất quán khi thay đổi resource trong lúc chuyến đang chạy.
+
+### Thay đổi
+1. Đồng bộ trạng thái handover mới theo trạng thái chuyến:
+- File: `backend/src/main/java/com/bus/system/modules/operation/service/impl/VehicleHandoverServiceImpl.java`
+- Trong `processResourceChange(...)`:
+  - Nếu trip đang `RUNNING` -> handover mới ở `IN_PROGRESS`
+  - Ngược lại -> `PENDING_HANDOVER`
+
+2. Cứng hóa audit `statusReason`:
+- Tránh ghép chuỗi gây `null` text trong reason.
+- Bổ sung helper `appendStatusReason(...)` để nối reason an toàn khi hậu kiểm.
+- Khi auto-close handover cũ, fallback reason nếu input `reason` rỗng.
+
+### Kiểm tra
+- Compile backend: `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+
+### Ghi chú thiết kế
+- Lát này chỉ tăng tính nhất quán trạng thái/audit và không thay đổi API contract.
