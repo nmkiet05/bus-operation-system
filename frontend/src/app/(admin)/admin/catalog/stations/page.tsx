@@ -32,6 +32,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Search, Loader2, MapPin, Ban } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Schema Validation
 const stationSchema = z.object({
@@ -53,6 +54,8 @@ export default function StationsPage() {
     const queryClient = useQueryClient();
     const [search, setSearch] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
+    const [deactivateTarget, setDeactivateTarget] = useState<{ id: number; name: string } | null>(null);
 
     // Fetch stations
     const { data: stations = [], isLoading } = useQuery({
@@ -234,9 +237,8 @@ export default function StationsPage() {
                                                         size="sm"
                                                         className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                         onClick={() => {
-                                                            if (confirm(`Vô hiệu hóa bến "${station.name}"?`)) {
-                                                                deactivateMutation.mutate(station.id);
-                                                            }
+                                                            setDeactivateTarget({ id: station.id, name: station.name });
+                                                            setDeactivateConfirmOpen(true);
                                                         }}
                                                         title="Vô hiệu hóa"
                                                     >
@@ -353,6 +355,25 @@ export default function StationsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={deactivateConfirmOpen}
+                onOpenChange={setDeactivateConfirmOpen}
+                title="Xác nhận vô hiệu hóa bến"
+                description={deactivateTarget ? `Vô hiệu hóa bến "${deactivateTarget.name}"?` : "Vô hiệu hóa bến này?"}
+                confirmLabel="Vô hiệu hóa"
+                variant="warning"
+                isLoading={deactivateMutation.isPending}
+                onConfirm={() => {
+                    if (!deactivateTarget) return;
+                    deactivateMutation.mutate(deactivateTarget.id, {
+                        onSuccess: () => {
+                            setDeactivateConfirmOpen(false);
+                            setDeactivateTarget(null);
+                        },
+                    });
+                }}
+            />
         </div>
     );
 }

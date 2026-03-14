@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { BusFleetResponse, BusRequest } from "@/features/admin/types";
 import { busTypeService } from "@/features/admin/services/bus-type-service";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Schema Validation
 const busSchema = z.object({
@@ -57,6 +58,8 @@ export default function BusesPage() {
     const [search, setSearch] = useState("");
     const [selectedBus, setSelectedBus] = useState<BusFleetResponse | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteTargetBus, setDeleteTargetBus] = useState<BusFleetResponse | null>(null);
 
     // Fetch Buses
     const { data: buses = [], isLoading } = useQuery({
@@ -287,9 +290,8 @@ export default function BusesPage() {
                                                     size="sm"
                                                     className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                     onClick={() => {
-                                                        if (confirm("Bạn có chắc chắn muốn xóa xe này?")) {
-                                                            deleteMutation.mutate(bus.id);
-                                                        }
+                                                        setDeleteTargetBus(bus);
+                                                        setDeleteConfirmOpen(true);
                                                     }}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -460,6 +462,25 @@ export default function BusesPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Xác nhận xóa xe"
+                description={deleteTargetBus ? `Bạn có chắc chắn muốn xóa xe "${deleteTargetBus.licensePlate}"?` : "Bạn có chắc chắn muốn xóa xe này?"}
+                confirmLabel="Xóa"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (!deleteTargetBus) return;
+                    deleteMutation.mutate(deleteTargetBus.id, {
+                        onSuccess: () => {
+                            setDeleteConfirmOpen(false);
+                            setDeleteTargetBus(null);
+                        },
+                    });
+                }}
+            />
         </div>
     );
 }

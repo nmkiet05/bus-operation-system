@@ -51,6 +51,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Status config
 const ASSIGNMENT_STATUS: Record<string, { label: string; className: string; icon: React.ElementType }> = {
@@ -129,6 +130,8 @@ export default function BusSchedulePage() {
     const [checkType, setCheckType] = useState<"in" | "out">("in");
     const [checkTarget, setCheckTarget] = useState<BusAssignment | null>(null);
     const [checkForm, setCheckForm] = useState({ odometer: "", fuelLevel: "", notes: "", depotId: "" });
+    const [endEarlyConfirmOpen, setEndEarlyConfirmOpen] = useState(false);
+    const [endEarlyConfirm, setEndEarlyConfirm] = useState<{ id: number; message: string } | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -1677,6 +1680,25 @@ export default function BusSchedulePage() {
                 </DialogContent>
             </Dialog>
 
+            <ConfirmDialog
+                open={endEarlyConfirmOpen}
+                onOpenChange={setEndEarlyConfirmOpen}
+                title="Xác nhận thao tác ca xe"
+                description={endEarlyConfirm?.message || "Bạn có chắc muốn tiếp tục thao tác này?"}
+                confirmLabel="Xác nhận"
+                variant="danger"
+                isLoading={endEarlyMutation.isPending}
+                onConfirm={() => {
+                    if (!endEarlyConfirm) return;
+                    endEarlyMutation.mutate(endEarlyConfirm.id, {
+                        onSuccess: () => {
+                            setEndEarlyConfirmOpen(false);
+                            setEndEarlyConfirm(null);
+                        },
+                    });
+                }}
+            />
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -1856,7 +1878,8 @@ export default function BusSchedulePage() {
                                                     const msg = isPending
                                                         ? `Hủy ca xe #${assignment.id}? Tất cả chuyến sẽ được giải phóng.`
                                                         : `Kết thúc sớm ca xe #${assignment.id}? Các chuyến chưa chạy sẽ được giải phóng. Bạn vẫn có thể nhập bãi sau.`;
-                                                    if (confirm(msg)) endEarlyMutation.mutate(assignment.id);
+                                                    setEndEarlyConfirm({ id: assignment.id, message: msg });
+                                                    setEndEarlyConfirmOpen(true);
                                                 }}
                                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                             >

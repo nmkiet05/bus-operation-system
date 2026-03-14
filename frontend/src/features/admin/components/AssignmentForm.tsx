@@ -29,6 +29,7 @@ import { Trip } from "@/features/admin/types";
 import { tripService } from "@/features/admin/services/trip-service";
 import { extractTime, formatDateVN } from "@/features/admin/utils/date-format";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Schema Validation
 const assignmentSchema = z.object({
@@ -52,6 +53,8 @@ export function AssignmentForm({ trip, onSuccess, onCancel }: AssignmentFormProp
     const [driverSearch, setDriverSearch] = useState("");
     const [busSearch, setBusSearch] = useState("");
     const [busTypeFilter, setBusTypeFilter] = useState<string | null>(null);
+    const [busyConfirmOpen, setBusyConfirmOpen] = useState(false);
+    const [pendingAssignmentValues, setPendingAssignmentValues] = useState<AssignmentFormValues | null>(null);
 
     // 1. Fetch Available Resources — dùng API thông minh (có scoring + route registration filter)
     const { data: drivers = [], isLoading: loadingDrivers } = useQuery({
@@ -143,14 +146,17 @@ export function AssignmentForm({ trip, onSuccess, onCancel }: AssignmentFormProp
 
     function onSubmit(values: AssignmentFormValues) {
         if (selectedDriver?.status === "BUSY") {
-            if (!confirm("Tài xế này đang bận. Bạn có chắc muốn ép gán?")) return;
+            setPendingAssignmentValues(values);
+            setBusyConfirmOpen(true);
+            return;
         }
         mutate(values);
     }
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
                 {/* Trip Details Summary Card */}
                 <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 space-y-3">
@@ -477,7 +483,24 @@ export function AssignmentForm({ trip, onSuccess, onCancel }: AssignmentFormProp
                         Xác nhận Điều phối
                     </Button>
                 </div>
-            </form>
-        </Form>
+                </form>
+            </Form>
+
+            <ConfirmDialog
+                open={busyConfirmOpen}
+                onOpenChange={setBusyConfirmOpen}
+                title="Tài xế đang bận"
+                description="Tài xế này đang bận. Bạn có chắc muốn ép gán?"
+                confirmLabel="Vẫn gán"
+                variant="warning"
+                isLoading={isPending}
+                onConfirm={() => {
+                    if (!pendingAssignmentValues) return;
+                    mutate(pendingAssignmentValues);
+                    setBusyConfirmOpen(false);
+                    setPendingAssignmentValues(null);
+                }}
+            />
+        </>
     );
 }

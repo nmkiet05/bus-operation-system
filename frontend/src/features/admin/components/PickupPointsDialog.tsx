@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { pickupPointService } from "@/features/admin/services/pickup-point-service";
 import { Route, PickupPoint, PickupPointRequest } from "@/features/admin/types";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const pickupSchema = z.object({
     name: z.string().min(1, "Tên điểm không được để trống"),
@@ -55,6 +56,8 @@ interface PickupPointsDialogProps {
 export function PickupPointsDialog({ route, open, onOpenChange }: PickupPointsDialogProps) {
     const queryClient = useQueryClient();
     const [editingPoint, setEditingPoint] = useState<PickupPoint | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteTargetPointId, setDeleteTargetPointId] = useState<number | null>(null);
 
     const { data: pickupPoints = [], isLoading } = useQuery({
         queryKey: ["pickup-points", route?.id],
@@ -283,9 +286,8 @@ export function PickupPointsDialog({ route, open, onOpenChange }: PickupPointsDi
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => {
-                                                                if (confirm("Chắc chắn xóa điểm đón/trả này?")) {
-                                                                    deleteMutation.mutate(p.id);
-                                                                }
+                                                                setDeleteTargetPointId(p.id);
+                                                                setDeleteConfirmOpen(true);
                                                             }}
                                                             className={cn(
                                                                 "h-7 w-7 p-0 transition-all",
@@ -451,6 +453,25 @@ export function PickupPointsDialog({ route, open, onOpenChange }: PickupPointsDi
                     </div>
                 </div>
             </DialogContent>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Xác nhận xóa điểm"
+                description="Chắc chắn xóa điểm đón/trả này?"
+                confirmLabel="Xóa"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (deleteTargetPointId == null) return;
+                    deleteMutation.mutate(deleteTargetPointId, {
+                        onSuccess: () => {
+                            setDeleteConfirmOpen(false);
+                            setDeleteTargetPointId(null);
+                        },
+                    });
+                }}
+            />
         </Dialog>
     );
 }

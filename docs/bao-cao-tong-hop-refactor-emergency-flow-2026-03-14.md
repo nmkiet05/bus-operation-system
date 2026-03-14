@@ -484,3 +484,28 @@ Xác nhận các thay đổi chính đã hoạt động ổn định theo môi t
 
 ### Kiểm tra
 - Diagnostics file support page: **No errors found**.
+
+---
+
+## Phần 10 — Loại bỏ toàn bộ native `window.confirm` trên Frontend
+
+### Mục tiêu
+Chuẩn hóa UX xác nhận thao tác bằng `ConfirmDialog` tái sử dụng, loại bỏ hoàn toàn browser native confirm trong mã ứng dụng.
+
+### Phạm vi thay đổi
+Đã thay các vị trí confirm còn lại tại:
+- `frontend/src/app/(public)/booking/lookup/page.tsx`
+- `frontend/src/app/(admin)/admin/planning/schedules/page.tsx`
+- `frontend/src/app/(admin)/admin/catalog/stations/page.tsx`
+- `frontend/src/features/admin/components/PickupPointsDialog.tsx`
+- `frontend/src/app/(admin)/admin/catalog/depots/page.tsx`
+- `frontend/src/app/(admin)/admin/planning/routes/page.tsx`
+- `frontend/src/features/admin/components/AssignmentForm.tsx`
+- `frontend/src/app/(admin)/admin/operation/crew/page.tsx`
+- `frontend/src/app/(admin)/admin/operation/bus-schedule/page.tsx`
+- `frontend/src/app/(admin)/admin/fleet/bus-types/page.tsx`
+- `frontend/src/app/(admin)/admin/fleet/buses/page.tsx`
+
+### Kết quả kiểm tra
+- Quét mã nguồn frontend: không còn `window.confirm`/`confirm(...)` chạy thực tế.
+- Diagnostics các file thay đổi: **No errors found**.

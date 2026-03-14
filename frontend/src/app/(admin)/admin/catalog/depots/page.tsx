@@ -31,6 +31,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Search, Pencil, Trash2, Loader2, Warehouse } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Schema Validation
 const depotSchema = z.object({
@@ -64,6 +65,8 @@ export default function DepotsPage() {
     const [search, setSearch] = useState("");
     const [selectedDepot, setSelectedDepot] = useState<DepotItem | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteTargetDepot, setDeleteTargetDepot] = useState<DepotItem | null>(null);
 
     // Fetch depots
     const { data: depots = [], isLoading } = useQuery<DepotItem[]>({
@@ -280,9 +283,8 @@ export default function DepotsPage() {
                                                         size="sm"
                                                         className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                         onClick={() => {
-                                                            if (confirm(`Xóa bãi xe "${depot.name}"?`)) {
-                                                                deleteMutation.mutate(depot.id);
-                                                            }
+                                                            setDeleteTargetDepot(depot);
+                                                            setDeleteConfirmOpen(true);
                                                         }}
                                                         title="Xóa"
                                                     >
@@ -449,6 +451,25 @@ export default function DepotsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Xác nhận xóa bãi xe"
+                description={deleteTargetDepot ? `Xóa bãi xe "${deleteTargetDepot.name}"?` : "Xóa bãi xe này?"}
+                confirmLabel="Xóa"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (!deleteTargetDepot) return;
+                    deleteMutation.mutate(deleteTargetDepot.id, {
+                        onSuccess: () => {
+                            setDeleteConfirmOpen(false);
+                            setDeleteTargetDepot(null);
+                        },
+                    });
+                }}
+            />
         </div>
     );
 }

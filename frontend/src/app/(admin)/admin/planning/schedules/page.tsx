@@ -35,6 +35,7 @@ import { TripSchedule, TripScheduleRequest } from "@/features/admin/types";
 import { cn } from "@/lib/utils";
 import { AdminDatePicker } from "@/features/admin/components/AdminDatePicker";
 import { format } from "date-fns";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Schema
 const scheduleSchema = z.object({
@@ -64,6 +65,8 @@ export default function SchedulesPage() {
     const [selectedSchedule, setSelectedSchedule] = useState<TripSchedule | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+    const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [genFromDate, setGenFromDate] = useState<Date | null>(null);
     const [genToDate, setGenToDate] = useState<Date | null>(null);
 
@@ -344,9 +347,8 @@ export default function SchedulesPage() {
                                                     size="sm"
                                                     className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                     onClick={() => {
-                                                        if (confirm("Xóa lịch trình này?")) {
-                                                            deleteMutation.mutate(schedule.id);
-                                                        }
+                                                        setDeleteTargetId(schedule.id);
+                                                        setDeleteConfirmOpen(true);
                                                     }}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -360,6 +362,25 @@ export default function SchedulesPage() {
                     </table>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Xác nhận xóa lịch trình"
+                description="Bạn có chắc muốn xóa lịch trình này?"
+                confirmLabel="Xóa"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (deleteTargetId == null) return;
+                    deleteMutation.mutate(deleteTargetId, {
+                        onSuccess: () => {
+                            setDeleteConfirmOpen(false);
+                            setDeleteTargetId(null);
+                        },
+                    });
+                }}
+            />
 
             {/* Create/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

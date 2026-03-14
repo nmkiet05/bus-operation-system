@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function BookingLookupPage() {
     const [code, setCode] = useState("");
@@ -32,6 +33,9 @@ export default function BookingLookupPage() {
     const [searched, setSearched] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [cancellingTicketId, setCancellingTicketId] = useState<number | null>(null);
+    const [cancelBookingConfirmOpen, setCancelBookingConfirmOpen] = useState(false);
+    const [cancelTicketConfirmOpen, setCancelTicketConfirmOpen] = useState(false);
+    const [cancelTicketTargetId, setCancelTicketTargetId] = useState<number | null>(null);
 
     const handleSearch = async () => {
         if (!code.trim() || !phone.trim()) {
@@ -54,7 +58,6 @@ export default function BookingLookupPage() {
 
     const handleCancel = async () => {
         if (!booking) return;
-        if (!confirm("Bạn có chắc muốn hủy đơn đặt vé này? Thao tác này không thể hoàn tác.")) return;
 
         setCancelling(true);
         try {
@@ -76,7 +79,6 @@ export default function BookingLookupPage() {
     };
 
     const handleCancelTicket = async (ticketId: number) => {
-        if (!confirm("Bạn có chắc muốn hủy vé này?")) return;
         setCancellingTicketId(ticketId);
         try {
             await bookingService.cancelTicketPublic(code.trim(), phone.trim(), ticketId);
@@ -393,7 +395,10 @@ export default function BookingLookupPage() {
                                                 {ticket.status !== "CANCELLED" && ticket.status !== "EXPIRED" && (isPending || isConfirmed) && (
                                                     <div className="pt-2 border-t border-gray-100">
                                                         <Button
-                                                            onClick={() => handleCancelTicket(ticket.id)}
+                                                                                    onClick={() => {
+                                                                                        setCancelTicketTargetId(ticket.id);
+                                                                                        setCancelTicketConfirmOpen(true);
+                                                                                    }}
                                                             disabled={cancellingTicketId === ticket.id}
                                                             variant="outline"
                                                             size="sm"
@@ -444,7 +449,7 @@ export default function BookingLookupPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {(isPending || isConfirmed) && (
                                 <Button
-                                    onClick={handleCancel}
+                                    onClick={() => setCancelBookingConfirmOpen(true)}
                                     disabled={cancelling}
                                     variant="destructive"
                                     className="h-12 gap-2"
@@ -467,6 +472,31 @@ export default function BookingLookupPage() {
                     </div>
                 )}
             </main>
+
+            <ConfirmDialog
+                open={cancelBookingConfirmOpen}
+                onOpenChange={setCancelBookingConfirmOpen}
+                title="Xác nhận hủy đơn"
+                description="Bạn có chắc muốn hủy đơn đặt vé này? Thao tác này không thể hoàn tác."
+                confirmLabel="Hủy đơn"
+                variant="danger"
+                isLoading={cancelling}
+                onConfirm={handleCancel}
+            />
+
+            <ConfirmDialog
+                open={cancelTicketConfirmOpen}
+                onOpenChange={setCancelTicketConfirmOpen}
+                title="Xác nhận hủy vé"
+                description="Bạn có chắc muốn hủy vé này?"
+                confirmLabel="Hủy vé"
+                variant="danger"
+                isLoading={cancellingTicketId !== null}
+                onConfirm={() => {
+                    if (cancelTicketTargetId == null) return;
+                    handleCancelTicket(cancelTicketTargetId);
+                }}
+            />
         </div>
     );
 }

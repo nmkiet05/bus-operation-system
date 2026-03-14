@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { Route, RouteRequest } from "@/features/admin/types";
 import { cn } from "@/lib/utils";
 import { PickupPointsDialog } from "@/features/admin/components/PickupPointsDialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Schema
 const routeSchema = z.object({
@@ -57,6 +58,8 @@ export default function RoutesPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedRouteForPickup, setSelectedRouteForPickup] = useState<Route | null>(null);
     const [isPickupDialogOpen, setIsPickupDialogOpen] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteTargetRoute, setDeleteTargetRoute] = useState<Route | null>(null);
 
     // Fetch Routes
     const { data: routes = [], isLoading } = useQuery({
@@ -309,9 +312,8 @@ export default function RoutesPage() {
                                                     size="sm"
                                                     className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                     onClick={() => {
-                                                        if (confirm("Xóa tuyến đường này?")) {
-                                                            deleteMutation.mutate(route.id);
-                                                        }
+                                                        setDeleteTargetRoute(route);
+                                                        setDeleteConfirmOpen(true);
                                                     }}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -485,6 +487,25 @@ export default function RoutesPage() {
                 route={selectedRouteForPickup}
                 open={isPickupDialogOpen}
                 onOpenChange={setIsPickupDialogOpen}
+            />
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Xác nhận xóa tuyến"
+                description={deleteTargetRoute ? `Xóa tuyến đường "${deleteTargetRoute.name}"?` : "Xóa tuyến đường này?"}
+                confirmLabel="Xóa"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (!deleteTargetRoute) return;
+                    deleteMutation.mutate(deleteTargetRoute.id, {
+                        onSuccess: () => {
+                            setDeleteConfirmOpen(false);
+                            setDeleteTargetRoute(null);
+                        },
+                    });
+                }}
             />
         </div>
     );

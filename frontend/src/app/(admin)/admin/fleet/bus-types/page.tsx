@@ -33,6 +33,7 @@ import { Plus, Search, Pencil, Trash2, Armchair, Loader2, Eye } from "lucide-rea
 import { toast } from "sonner";
 import { BusType, SeatMapItem } from "@/features/admin/types";
 import { SeatMap } from "@/features/booking/components/SeatMap";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Schema Validation
 const busTypeSchema = z.object({
@@ -50,6 +51,8 @@ export default function BusTypesPage() {
     const [selectedType, setSelectedType] = useState<BusType | null>(null);
     const [previewType, setPreviewType] = useState<BusType | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteTargetType, setDeleteTargetType] = useState<BusType | null>(null);
 
     // Fetch
     const { data: busTypes = [], isLoading } = useQuery({
@@ -288,9 +291,8 @@ export default function BusTypesPage() {
                                                     size="sm"
                                                     className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                     onClick={() => {
-                                                        if (confirm("Xóa loại xe này?")) {
-                                                            deleteMutation.mutate(type.id);
-                                                        }
+                                                        setDeleteTargetType(type);
+                                                        setDeleteConfirmOpen(true);
                                                     }}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -500,6 +502,25 @@ export default function BusTypesPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Xác nhận xóa loại xe"
+                description={deleteTargetType ? `Xóa loại xe "${deleteTargetType.name}"?` : "Xóa loại xe này?"}
+                confirmLabel="Xóa"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (!deleteTargetType) return;
+                    deleteMutation.mutate(deleteTargetType.id, {
+                        onSuccess: () => {
+                            setDeleteConfirmOpen(false);
+                            setDeleteTargetType(null);
+                        },
+                    });
+                }}
+            />
         </div>
     );
 }

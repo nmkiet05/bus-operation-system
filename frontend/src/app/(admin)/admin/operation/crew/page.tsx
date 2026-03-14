@@ -43,6 +43,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Status options
 const STATUS_CONFIG: Record<TripStatus, { label: string; className: string }> = {
@@ -383,6 +384,8 @@ function CrewManagementDialog({
     const [pendingQueue, setPendingQueue] = useState<PendingCrewItem[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [licenseFilter, setLicenseFilter] = useState("ALL");
+    const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState<{ assignmentId: number; fullName: string } | null>(null);
     const queryClient = useQueryClient();
 
     const canEdit = trip.status === "SCHEDULED" || trip.status === "APPROVED";
@@ -694,8 +697,11 @@ function CrewManagementDialog({
                                                 {canEdit && (
                                                     <button
                                                         onClick={() => {
-                                                            if (confirm(`Hủy phân công ${member.fullName}?`))
-                                                                cancelMutation.mutate(member.assignmentId);
+                                                            setCancelTarget({
+                                                                assignmentId: member.assignmentId,
+                                                                fullName: member.fullName,
+                                                            });
+                                                            setCancelConfirmOpen(true);
                                                         }}
                                                         disabled={cancelMutation.isPending}
                                                         className="p-1.5 rounded-md hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors shrink-0"
@@ -987,5 +993,24 @@ function CrewManagementDialog({
                 </div>
             </DialogContent>
         </Dialog>
+
+        <ConfirmDialog
+            open={cancelConfirmOpen}
+            onOpenChange={setCancelConfirmOpen}
+            title="Xác nhận hủy phân công"
+            description={cancelTarget ? `Hủy phân công ${cancelTarget.fullName}?` : "Hủy phân công này?"}
+            confirmLabel="Hủy phân công"
+            variant="danger"
+            isLoading={cancelMutation.isPending}
+            onConfirm={() => {
+                if (!cancelTarget) return;
+                cancelMutation.mutate(cancelTarget.assignmentId, {
+                    onSuccess: () => {
+                        setCancelConfirmOpen(false);
+                        setCancelTarget(null);
+                    },
+                });
+            }}
+        />
     );
 }
