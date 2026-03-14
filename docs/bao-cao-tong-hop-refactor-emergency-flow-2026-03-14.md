@@ -1,0 +1,95 @@
+# Báo cáo Tổng Hợp Refactor Emergency Flow 5 Vùng
+
+Ngày cập nhật: 2026-03-14  
+Nguyên tắc triển khai: chia phân đoạn nhỏ, kiểm tra sau mỗi phân đoạn, commit độc lập để rollback nhanh.
+
+## Phần 01 — Chặn reject sai vùng ở Backend
+
+### Mục tiêu
+Khóa lỗ hổng nghiệp vụ: request thuộc vùng không cho reject (đặc biệt DEPARTED, MID_ROUTE) không được đi qua luồng reject thường.
+
+### Thay đổi
+1. Thêm validator `validateRejectAllowed(...)`:
+- File: `backend/src/main/java/com/bus/system/modules/operation/service/impl/TripChangeValidator.java`
+- Logic: nếu `urgencyZone` không cho reject thì ném `BusinessException`.
+
+2. Gắn validator vào luồng `rejectRequest(...)`:
+- File: `backend/src/main/java/com/bus/system/modules/operation/service/impl/TripChangeServiceImpl.java`
+
+### Kiểm tra
+- `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+
+### Commit phân đoạn
+- Backend: `06c7123`
+- Message: `fix(operation): block reject on non-rejectable emergency zones`
+
+---
+
+## Phần 02 — Đồng bộ schema cơ bản + cấu hình ngưỡng 5 vùng
+
+### Mục tiêu
+Giảm lệch DB/BE ở bảng `trip_change_request` và loại bỏ phụ thuộc default ẩn cho ngưỡng vận hành.
+
+### Thay đổi
+1. Cập nhật schema trực tiếp trong `V1__init_schema.sql`:
+- File: `backend/src/main/resources/db/migration/V1__init_schema.sql`
+- Đổi default `change_type`: `DRIVER` -> `REPLACE_DRIVER`
+- Bổ sung cột: `urgency_zone VARCHAR(20) DEFAULT 'STANDARD'`
+- Cập nhật comment `status` có `ESCALATED`
+- Cập nhật comment enum `change_type` và `urgency_zone`
+
+2. Cập nhật cấu hình tường minh trong `application.yml`:
+- File: `backend/src/main/resources/application.yml`
+- Thêm:
+  - `operation.trip-change.urgent-window-minutes: 60`
+  - `operation.trip-change.handover-gap-minutes: 15`
+  - `operation.trip-change.escalation-timeout-minutes: 10`
+
+### Kiểm tra
+- `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+
+### Commit phân đoạn
+- Backend: `1d9d394`
+- Message: `refactor(operation): align trip-change schema and explicit zone config`
+- Root: `b2b76f2`
+- Message: `docs: add segment-02 report and update backend pointer`
+
+### Rủi ro ghi nhận
+- Vì chỉnh trực tiếp `V1__init_schema.sql`, môi trường đã migrate trước đó có thể cần clean/migrate lại theo chính sách hiện hành.
+
+---
+
+## Phần 03 — Cứng hóa ràng buộc schema cho `trip_change_request`
+
+### Mục tiêu
+Thêm ràng buộc dữ liệu ở DB để giảm sai lệch enum/runtime giữa các lớp.
+
+### Thay đổi
+1. Bổ sung CHECK CONSTRAINT trực tiếp trong bảng `trip_change_request`:
+- File: `backend/src/main/resources/db/migration/V1__init_schema.sql`
+- Ràng buộc đã thêm:
+  - `change_type IN ('REPLACE_DRIVER', 'REPLACE_CO_DRIVER', 'REPLACE_ATTENDANT', 'REPLACE_BUS', 'INCIDENT_SWAP')`
+  - `urgency_zone IN ('STANDARD', 'URGENT', 'CRITICAL', 'DEPARTED', 'MID_ROUTE')`
+  - `status IN ('PENDING', 'ESCALATED', 'APPROVED', 'REJECTED', 'CANCELLED')`
+  - `incident_type IS NULL OR incident_type IN ('FATIGUE_SWAP', 'DRIVER_HEALTH', 'VEHICLE_BREAKDOWN', 'TRAFFIC_ACCIDENT')`
+
+### Kiểm tra
+- `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+
+### Ghi chú thiết kế
+- Ở phân đoạn này chưa thêm cross-field constraint (ví dụ `incident_type` bắt buộc đi kèm `MID_ROUTE`) để tránh tăng rủi ro phá luồng hiện tại. Có thể bổ sung ở phân đoạn sau khi hoàn tất đối soát dữ liệu thực tế.
+
+---
+
+## Trạng thái hiện tại
+
+1. Lỗ hổng reject sai vùng đã được chặn ở tầng service.
+2. Schema `trip_change_request` đã gần sát mô hình BE hơn (có `urgency_zone` + CHECK enum).
+3. Ngưỡng vận hành 5 vùng đã được khai báo tường minh trong cấu hình.
+4. Build backend vẫn ổn định qua từng phân đoạn.
+
+## Kế hoạch ngay sau phần 03
+
+1. Commit phân đoạn 03 (backend + cập nhật con trỏ root).
+2. Sang phần 04: đồng bộ contract BE-FE (status/type/metadata hậu kiểm).
+3. Bắt đầu hoàn thiện FE flow 5 vùng theo style hiện có của dự án (incident/review/rollback + guard theo vùng).
