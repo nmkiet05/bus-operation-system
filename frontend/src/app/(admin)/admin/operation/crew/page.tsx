@@ -556,6 +556,7 @@ function CrewManagementDialog({
     const isSubmitting = batchAssignMutation.isPending || assignMutation.isPending;
 
     return (
+        <>
         <Dialog open={open} onOpenChange={(v) => {
             if (!v) setPendingQueue([]);
             onOpenChange(v);
@@ -1012,5 +1013,6 @@ function CrewManagementDialog({
                 });
             }}
         />
+        </>
     );
 }
