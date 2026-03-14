@@ -15,8 +15,13 @@ export interface PaymentResponse {
 }
 
 export const paymentService = {
-    simulatePayment: async (data: PaymentRequest): Promise<PaymentResponse> => {
-        const response = await axiosInstance.post<PaymentResponse>("/payments/simulate", data);
+    processPayment: async (data: PaymentRequest): Promise<PaymentResponse> => {
+        const response = await axiosInstance.post<PaymentResponse>("/payments/process", data);
         return response.data;
+    },
+
+    // Backward compatibility
+    simulatePayment: async (data: PaymentRequest): Promise<PaymentResponse> => {
+        return paymentService.processPayment(data);
     },
 };

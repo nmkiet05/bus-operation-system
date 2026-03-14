@@ -380,3 +380,44 @@ Thay số liệu hardcode của dashboard admin bằng số liệu vận hành t
 ### Ghi chú thiết kế
 - Lát này chỉ thay số liệu tổng quan, không mở rộng biểu đồ nâng cao.
 - Label phụ hiển thị quy tắc tính để tránh hiểu sai KPI vận hành.
+
+---
+
+## Phần 07 — Dọn mock/placeholder (lát 3: payment flow bỏ phụ thuộc "simulate" ở FE)
+
+### Mục tiêu
+Giảm phụ thuộc mock trong luồng đặt vé bằng cách chuẩn hóa API/method thanh toán theo tên nghiệp vụ thực tế (`processPayment`).
+
+### Thay đổi Backend
+1. Bổ sung API mới xử lý thanh toán:
+- File: `backend/src/main/java/com/bus/system/modules/payment/controller/PaymentController.java`
+- Thêm endpoint `POST /api/payments/process`
+- Giữ endpoint cũ `/simulate` để tương thích ngược.
+
+2. Cập nhật service contract:
+- File: `backend/src/main/java/com/bus/system/modules/payment/service/PaymentService.java`
+- Thêm `processPayment(...)`
+- `simulatePayment(...)` giữ lại cho backward compatibility.
+
+3. Cập nhật implementation:
+- File: `backend/src/main/java/com/bus/system/modules/payment/service/impl/PaymentServiceImpl.java`
+- Chuyển logic chính sang `processPayment(...)`
+- `simulatePayment(...)` gọi lại `processPayment(...)`.
+
+### Thay đổi Frontend
+1. Chuẩn hóa payment service:
+- File: `frontend/src/services/api/payment.ts`
+- Thêm `processPayment(...)` gọi `/payments/process`
+- Giữ alias `simulatePayment(...)` gọi nội bộ `processPayment(...)`.
+
+2. Cập nhật booking flow public:
+- File: `frontend/src/app/(public)/booking/[tripId]/page.tsx`
+- Chuyển gọi từ `simulatePayment(...)` sang `processPayment(...)`
+- Làm sạch comment/log theo ngữ nghĩa thanh toán thật.
+
+### Kiểm tra
+- Backend compile: `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+- Diagnostics FE/BE file thay đổi: **No errors found**.
+
+### Ghi chú thiết kế
+- Lát này chuẩn hóa contract và naming theo nghiệp vụ, không thay đổi sâu payment strategy hiện tại.

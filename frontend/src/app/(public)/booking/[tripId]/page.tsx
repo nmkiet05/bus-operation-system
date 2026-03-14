@@ -136,13 +136,13 @@ export default function BookingPage() {
                 throw new Error("Không nhận được mã đặt vé từ server");
             }
 
-            // 5. Process Payment (Simulated)
+            // 5. Process Payment
             try {
                 // Chỉ gọi API thanh toán nếu phương thức không phải là trả sau (COUNTER/CASH)
-                // Tuy nhiên, để demo "Real API", ta gọi simulate cho mọi trường hợp để update status -> CONFIRMED
+                // Hiện tại gọi payment API để cập nhật trạng thái booking theo method đã chọn
                 // Trong thực tế, nếu là VNPAY thì redirect, nếu CASH thì ...
                 if (request.paymentMethod !== "COUNTER") {
-                    const paymentRes = await paymentService.simulatePayment({
+                    const paymentRes = await paymentService.processPayment({
                         bookingCode: bookingCode,
                         method: request.paymentMethod || "CASH"
                     });
@@ -152,7 +152,7 @@ export default function BookingPage() {
                     });
                 }
             } catch (paymentError) {
-                console.error("Payment simulation failed:", paymentError);
+                console.error("Payment failed:", paymentError);
                 toast.warning("Đặt vé thành công nhưng thanh toán thất bại/chưa hoàn tất.", {
                     description: "Vui lòng kiểm tra lại trong phần Lịch sử vé."
                 });
