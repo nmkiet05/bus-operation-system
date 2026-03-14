@@ -225,3 +225,31 @@ Giảm nhập tay ID gây lỗi thao tác bằng cách chuyển dialog incident 
 ### Ghi chú thiết kế
 - Lát này vẫn giữ phạm vi thay đổi trong một màn hình để kiểm soát rủi ro.
 - Chưa bổ sung bộ lọc/selector nâng cao (ví dụ theo bến hoặc theo tuyến) để tránh mở rộng phạm vi ngoài mục tiêu lát nhỏ.
+
+---
+
+## Phần 06 — Rà soát liên đới Operation Assignment (lát 1: consistency đổi xe)
+
+### Mục tiêu
+Đảm bảo luồng đổi xe và rollback đổi xe trong `TripChangeExecutor` nhất quán với vòng đời `BusAssignment`.
+
+### Thay đổi
+1. Cập nhật `TripChangeExecutor` để xử lý ca xe khi đổi bus:
+- File: `backend/src/main/java/com/bus/system/modules/operation/service/impl/TripChangeExecutor.java`
+- Bổ sung dependency `BusAssignmentService`.
+- Khi đổi xe:
+  - Nếu `busAssignment` hiện tại đang ở trạng thái hoạt động (`PENDING`, `CHECKED_IN`, `DEPARTED`) => gọi `endEarly(...)`.
+  - Gán bus mới cho trip, reset `trip.busAssignment` về `null`.
+  - Gọi `attachTripToBusAssignment(...)` để gắn vào ca xe phù hợp.
+- Khi rollback đổi xe:
+  - Áp dụng logic tương tự với bus cũ (`oldBus`).
+
+2. Bổ sung helper nội bộ:
+- `shouldEndEarly(BusAssignmentStatus status)` để kiểm soát điều kiện kết thúc sớm.
+
+### Kiểm tra
+- Compile backend: `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+
+### Ghi chú thiết kế
+- Lát này chỉ xử lý consistency vòng đời ca xe khi đổi bus/rollback bus.
+- Chưa thay đổi nhánh xử lý crew ngoài phạm vi cần thiết để tránh mở rộng rủi ro trong cùng phân đoạn.
