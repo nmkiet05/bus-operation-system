@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getProvinces } from "@/services/api/catalog";
+import { busTypeService } from "@/features/admin/services/bus-type-service";
 
 // Define keys for query caching to ensure consistency
 export const QUERY_KEYS = {
@@ -25,12 +26,18 @@ export function useProvinces() {
 }
 
 /**
- * Enterprise Hook: useBusTypes (Placeholder for future)
+ * Enterprise Hook: useBusTypes
+ * - Lấy danh sách loại xe từ API Fleet.
+ * - Dữ liệu master thay đổi ít nên cache dài hạn tương tự provinces.
  */
 export function useBusTypes() {
     return useQuery({
         queryKey: QUERY_KEYS.BUS_TYPES,
-        queryFn: async () => [], // TODO: Implement actual API call
+        queryFn: busTypeService.getAll,
         staleTime: Infinity,
+        gcTime: 1000 * 60 * 60 * 24,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 }

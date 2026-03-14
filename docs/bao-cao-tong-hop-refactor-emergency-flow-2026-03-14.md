@@ -302,3 +302,26 @@ Tránh thay nhầm `DriverAssignment` khi xử lý đổi crew trong trường h
 
 ### Ghi chú thiết kế
 - Lát này chỉ tăng tính nhất quán trạng thái/audit và không thay đổi API contract.
+
+---
+
+## Phần 07 — Dọn mock/placeholder (lát 1: useBusTypes)
+
+### Mục tiêu
+Loại bỏ mock dữ liệu master có rủi ro hiển thị sai trên UI quản trị và đồng bộ với API Fleet đã sẵn có.
+
+### Thay đổi
+1. Thay thế `useBusTypes` placeholder bằng API thật:
+- File: `frontend/src/hooks/useMasterData.ts`
+- Trước thay đổi:
+  - `queryFn: async () => []` (placeholder)
+- Sau thay đổi:
+  - `queryFn: busTypeService.getAll`
+  - Giữ chính sách cache dài hạn tương tự `useProvinces` (`staleTime`, `gcTime`, `refetch* = false`).
+
+### Kiểm tra
+- Diagnostics file FE sau chỉnh sửa: **No errors found**.
+
+### Ghi chú thiết kế
+- Đây là lát dọn mock rủi ro thấp, không đổi behavior nghiệp vụ phức tạp.
+- Các mock lớn hơn (dashboard stats, payment simulate, booking placeholders) sẽ xử lý ở lát sau theo mức độ ưu tiên vận hành.
