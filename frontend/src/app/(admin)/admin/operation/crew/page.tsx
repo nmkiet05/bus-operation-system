@@ -747,9 +747,15 @@ function CrewManagementDialog({
                                                     "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
                                                     member.status === "COMPLETED"
                                                         ? "bg-slate-100 text-slate-500"
-                                                        : "bg-red-50 text-red-400"
+                                                        : member.status === "ENDED_EARLY"
+                                                            ? "bg-orange-50 text-orange-600"
+                                                            : "bg-red-50 text-red-400"
                                                 )}>
-                                                    {member.status === "COMPLETED" ? "Hoàn thành" : "Đã hủy"}
+                                                    {member.status === "COMPLETED"
+                                                        ? "Hoàn thành"
+                                                        : member.status === "ENDED_EARLY"
+                                                            ? "Sự cố/Kết thúc sớm"
+                                                            : "Đã hủy"}
                                                 </span>
                                             </div>
                                         );

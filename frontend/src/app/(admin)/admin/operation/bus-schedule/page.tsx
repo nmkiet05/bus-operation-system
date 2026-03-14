@@ -76,7 +76,7 @@ const ASSIGNMENT_STATUS: Record<string, { label: string; className: string; icon
         icon: LogOut,
     },
     ENDED_EARLY: {
-        label: "Kết thúc sớm",
+        label: "Sự cố/Kết thúc sớm",
         className: "bg-red-50 text-red-600 border-red-200",
         icon: XCircle,
     },
@@ -717,7 +717,7 @@ export default function BusSchedulePage() {
         total: assignments.length,
         scheduled: assignments.filter(a => ["PENDING", "SCHEDULED"].includes(a.status)).length,
         checkedIn: assignments.filter(a => a.status === "CHECKED_IN").length,
-        completed: assignments.filter(a => ["CHECKED_OUT", "COMPLETED"].includes(a.status)).length,
+        closed: assignments.filter(a => ["CHECKED_OUT", "COMPLETED", "ENDED_EARLY"].includes(a.status)).length,
     }), [assignments]);
 
     return (
@@ -1732,7 +1732,7 @@ export default function BusSchedulePage() {
                     { label: "Tổng ca", value: stats.total, color: "text-gray-900" },
                     { label: "Chờ xuất", value: stats.scheduled, color: "text-yellow-600" },
                     { label: "Đang chạy", value: stats.checkedIn, color: "text-blue-600" },
-                    { label: "Hoàn thành", value: stats.completed, color: "text-green-600" },
+                    { label: "Đã đóng ca", value: stats.closed, color: "text-green-600" },
                 ].map(s => (
                     <div key={s.label} className="bg-white rounded-lg border border-gray-100 p-3 text-center">
                         <p className={cn("text-xl font-bold", s.color)}>{s.value}</p>

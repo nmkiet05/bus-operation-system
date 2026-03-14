@@ -509,3 +509,23 @@ Chuẩn hóa UX xác nhận thao tác bằng `ConfirmDialog` tái sử dụng, l
 ### Kết quả kiểm tra
 - Quét mã nguồn frontend: không còn `window.confirm`/`confirm(...)` chạy thực tế.
 - Diagnostics các file thay đổi: **No errors found**.
+
+---
+
+## Phần 11 — Đồng bộ FE theo rule `ENDED_EARLY` cho sự cố/kết thúc sớm
+
+### Mục tiêu
+Đồng bộ cách hiển thị Frontend theo rule vận hành: dùng `ENDED_EARLY` thay cho diễn giải sự cố ở lớp ca xe, tránh hiển thị nhầm thành `CANCELLED`.
+
+### Thay đổi
+1. Màn Ca Xe:
+- File: `frontend/src/app/(admin)/admin/operation/bus-schedule/page.tsx`
+- Đổi label `ENDED_EARLY` thành `Sự cố/Kết thúc sớm`.
+- Điều chỉnh stats tổng hợp ca đóng để tính cả `ENDED_EARLY` và đổi nhãn card sang `Đã đóng ca`.
+
+2. Màn Đội ngũ:
+- File: `frontend/src/app/(admin)/admin/operation/crew/page.tsx`
+- Sửa render lịch sử crew: `ENDED_EARLY` hiển thị riêng `Sự cố/Kết thúc sớm` (không gom vào `Đã hủy`).
+
+### Kiểm tra
+- Diagnostics các file đã sửa: **No errors found**.
