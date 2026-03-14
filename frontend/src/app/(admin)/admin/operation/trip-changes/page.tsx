@@ -17,6 +17,7 @@ import {
     TripChangeRequest,
     tripChangeService,
 } from "@/features/admin/services/trip-change-service";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { tripService } from "@/features/admin/services/trip-service";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -106,6 +107,16 @@ export default function TripChangesPage() {
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [rejectTarget, setRejectTarget] = useState<TripChangeRequest | null>(null);
     const [rejectReason, setRejectReason] = useState("");
+    // Review Dialog (thay thế prompt())
+    const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+    const [reviewTarget, setReviewTarget] = useState<TripChangeRequest | null>(null);
+    const [reviewApproved, setReviewApproved] = useState(true);
+    const [reviewNotes, setReviewNotes] = useState("");
+    // Confirm Dialog cho Approve & Rollback (thay thế confirm())
+    const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+    const [approveTarget, setApproveTarget] = useState<TripChangeRequest | null>(null);
+    const [rollbackConfirmOpen, setRollbackConfirmOpen] = useState(false);
+    const [rollbackTarget, setRollbackTarget] = useState<TripChangeRequest | null>(null);
     const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
     const [incidentTripId, setIncidentTripId] = useState<number | null>(null);
     const [incidentDriverId, setIncidentDriverId] = useState<number | null>(null);
@@ -170,6 +181,9 @@ export default function TripChangesPage() {
             tripChangeService.review(id, approved, notes),
         onSuccess: (_data, vars) => {
             toast.success(vars.approved ? "Đã hậu kiểm: đạt" : "Đã hậu kiểm: không đạt");
+            setReviewDialogOpen(false);
+            setReviewNotes("");
+            setReviewTarget(null);
             queryClient.invalidateQueries({ queryKey: ["trip-changes"] });
         },
         onError: (error: unknown) => {
@@ -225,8 +239,8 @@ export default function TripChangesPage() {
     });
 
     const handleApprove = (req: TripChangeRequest) => {
-        if (!confirm(`Duyệt yêu cầu ${CHANGE_TYPE_LABELS[req.changeType] || req.changeType}?`)) return;
-        approveMutation.mutate(req.id);
+        setApproveTarget(req);
+        setApproveConfirmOpen(true);
     };
 
     const handleRejectOpen = (req: TripChangeRequest) => {
@@ -248,24 +262,29 @@ export default function TripChangesPage() {
         rejectMutation.mutate({ id: rejectTarget.id, reason: rejectReason });
     };
 
-    const handleReview = (req: TripChangeRequest, approved: boolean) => {
-        const note = prompt(
-            approved
-                ? "Nhập ghi chú hậu kiểm (không bắt buộc):"
-                : "Nhập lý do hậu kiểm không đạt:"
-        );
+    const handleReviewOpen = (req: TripChangeRequest, approved: boolean) => {
+        setReviewTarget(req);
+        setReviewApproved(approved);
+        setReviewNotes("");
+        setReviewDialogOpen(true);
+    };
 
-        if (!approved && !note?.trim()) {
+    const handleReviewConfirm = () => {
+        if (!reviewTarget) return;
+        if (!reviewApproved && !reviewNotes.trim()) {
             toast.error("Vui lòng nhập lý do hậu kiểm không đạt");
             return;
         }
-
-        reviewMutation.mutate({ id: req.id, approved, notes: note?.trim() || undefined });
+        reviewMutation.mutate({
+            id: reviewTarget.id,
+            approved: reviewApproved,
+            notes: reviewNotes.trim() || undefined,
+        });
     };
 
     const handleRollback = (req: TripChangeRequest) => {
-        if (!confirm(`Hoàn tác yêu cầu ${CHANGE_TYPE_LABELS[req.changeType] || req.changeType}?`)) return;
-        rollbackMutation.mutate(req.id);
+        setRollbackTarget(req);
+        setRollbackConfirmOpen(true);
     };
 
     const handleSubmitIncident = () => {
@@ -294,6 +313,81 @@ export default function TripChangesPage() {
 
     return (
         <div className="space-y-6">
+            {/* Approve Confirm Dialog */}
+            <ConfirmDialog
+                open={approveConfirmOpen}
+                onOpenChange={setApproveConfirmOpen}
+                title="Duyệt yêu cầu phân công lại"
+                description={`Duyệt yêu cầu "${CHANGE_TYPE_LABELS[approveTarget?.changeType || ""] || "—"}"? Thao tác sẽ thực thi ngay và không thể hoàn tác trực tiếp.`}
+                confirmLabel="Duyệt"
+                variant="info"
+                isLoading={approveMutation.isPending}
+                onConfirm={() => {
+                    if (approveTarget) approveMutation.mutate(approveTarget.id);
+                    setApproveConfirmOpen(false);
+                }}
+            />
+            {/* Rollback Confirm Dialog */}
+            <ConfirmDialog
+                open={rollbackConfirmOpen}
+                onOpenChange={setRollbackConfirmOpen}
+                title="Hoàn tác yêu cầu"
+                description={`Hoàn tác yêu cầu "${CHANGE_TYPE_LABELS[rollbackTarget?.changeType || ""] || "—"}"? Hệ thống sẽ khôi phục tài xế/xe cũ cho chuyến.`}
+                confirmLabel="Hoàn tác"
+                variant="warning"
+                isLoading={rollbackMutation.isPending}
+                onConfirm={() => {
+                    if (rollbackTarget) rollbackMutation.mutate(rollbackTarget.id);
+                    setRollbackConfirmOpen(false);
+                }}
+            />
+            {/* Review Dialog */}
+            <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {reviewApproved ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            ) : (
+                                <XCircle className="h-5 w-5 text-red-500" />
+                            )}
+                            {reviewApproved ? "Hậu kiểm đạt" : "Hậu kiểm không đạt"}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        <p className="text-sm text-gray-600">
+                            Yêu cầu: <strong>{CHANGE_TYPE_LABELS[reviewTarget?.changeType || ""] || "—"}</strong>
+                            {" — "}
+                            <span className="text-xs text-gray-400">{reviewTarget?.urgencyZone}</span>
+                        </p>
+                        <Textarea
+                            placeholder={reviewApproved ? "Ghi chú hậu kiểm (không bắt buộc)..." : "Nhập lý do hậu kiểm không đạt (bắt buộc)..."}
+                            value={reviewNotes}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReviewNotes(e.target.value)}
+                            rows={3}
+                        />
+                        {!reviewApproved && (
+                            <p className="text-xs text-red-500">Lý do bắt buộc khi hậu kiểm không đạt.</p>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+                            Hủy
+                        </Button>
+                        <Button
+                            variant={reviewApproved ? "default" : "destructive"}
+                            onClick={handleReviewConfirm}
+                            disabled={reviewMutation.isPending || (!reviewApproved && !reviewNotes.trim())}
+                        >
+                            {reviewMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : null}
+                            {reviewApproved ? "Xác nhận đạt" : "Xác nhận không đạt"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Reject Dialog */}
             <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
                 <DialogContent className="sm:max-w-md">
@@ -619,8 +713,9 @@ export default function TripChangesPage() {
                                                 {isEmergencyReviewCandidate ? (
                                                     <div className="flex items-center justify-center gap-1">
                                                         <button
-                                                            onClick={() => handleReview(req, true)}
+                                                            onClick={() => handleReviewOpen(req, true)}
                                                             disabled={reviewMutation.isPending}
+                                                            title="Xác nhận thao tác đã thực hiện đúng nghiệp vụ"
                                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
                                                         >
                                                             <CheckCircle2 className="h-3 w-3" />
@@ -628,8 +723,9 @@ export default function TripChangesPage() {
                                                         </button>
                                                         {canReviewReject && (
                                                             <button
-                                                                onClick={() => handleReview(req, false)}
+                                                                onClick={() => handleReviewOpen(req, false)}
                                                                 disabled={reviewMutation.isPending}
+                                                                title="Ghi nhận thao tác không đạt chuẩn (chỉ áp dụng Vùng CRITICAL)"
                                                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
                                                             >
                                                                 <XCircle className="h-3 w-3" />
@@ -650,7 +746,8 @@ export default function TripChangesPage() {
                                                         <button
                                                             onClick={() => handleRejectOpen(req)}
                                                             disabled={isAutoExecuteZone || rejectMutation.isPending}
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                                            title={isAutoExecuteZone ? `Vùng ${req.urgencyZone} không cho phép từ chối. Dùng Hậu kiểm.` : "Từ chối yêu cầu này"}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                                         >
                                                             <XCircle className="h-3 w-3" />
                                                             Từ chối

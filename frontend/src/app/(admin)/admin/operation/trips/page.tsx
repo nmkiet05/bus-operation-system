@@ -52,6 +52,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { extractTime } from "@/features/admin/utils/date-format";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Badge màu theo trạng thái
 const STATUS_CONFIG: Record<
@@ -113,6 +114,11 @@ export default function TripListPage() {
 
     // Manual Create Dialog State
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+    // Confirm Dialog state (khai báo trước hooks khác)
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmTrip, setConfirmTrip] = useState<Trip | null>(null);
+    const [confirmAction, setConfirmAction] = useState<"approve" | "start" | "complete" | "cancel">("approve");
 
     const queryClient = useQueryClient();
 
@@ -189,24 +195,65 @@ export default function TripListPage() {
         },
     });
 
-    const handleApprove = (trip: Trip) => {
-        if (!confirm(`Duyệt chuyến ${trip.routeName} lúc ${extractTime(trip.departureTime)}? Chuyến sẽ được mở bán vé.`)) return;
-        approveMutation.mutate(trip.id);
+    const handleApprove = (trip: Trip) => openConfirm(trip, "approve");
+    const handleStart = (trip: Trip) => openConfirm(trip, "start");
+    const handleComplete = (trip: Trip) => openConfirm(trip, "complete");
+    const handleCancel = (trip: Trip) => openConfirm(trip, "cancel");
+
+
+
+    const CONFIRM_CONFIG = {
+        approve: {
+            title: "Duyệt chuyến xe",
+            description: confirmTrip
+                ? `Duyệt chuyến ${confirmTrip.routeName} lúc ${extractTime(confirmTrip.departureTime)}? Chuyến sẽ được mở bán vé ngay.`
+                : "",
+            confirmLabel: "Duyệt",
+            variant: "info" as const,
+            isPending: approveMutation.isPending,
+        },
+        start: {
+            title: "Bắt đầu khởi hành",
+            description: confirmTrip
+                ? `Xác nhận khởi hành chuyến ${confirmTrip.routeName} lúc ${extractTime(confirmTrip.departureTime)}?`
+                : "",
+            confirmLabel: "Khởi hành",
+            variant: "info" as const,
+            isPending: startMutation.isPending,
+        },
+        complete: {
+            title: "Hoàn thành chuyến",
+            description: confirmTrip
+                ? `Xác nhận chuyến ${confirmTrip.routeName} đã hoàn thành?`
+                : "",
+            confirmLabel: "Hoàn thành",
+            variant: "info" as const,
+            isPending: completeMutation.isPending,
+        },
+        cancel: {
+            title: "Hủy chuyến xe",
+            description: confirmTrip
+                ? `Hủy chuyến ${confirmTrip.routeName} lúc ${extractTime(confirmTrip.departureTime)}? Hành động này không thể hoàn tác.`
+                : "",
+            confirmLabel: "Hủy chuyến",
+            variant: "danger" as const,
+            isPending: cancelMutation.isPending,
+        },
     };
 
-    const handleStart = (trip: Trip) => {
-        if (!confirm(`Bắt đầu chuyến ${trip.routeName} lúc ${extractTime(trip.departureTime)}?`)) return;
-        startMutation.mutate(trip.id);
+    const openConfirm = (trip: Trip, action: typeof confirmAction) => {
+        setConfirmTrip(trip);
+        setConfirmAction(action);
+        setConfirmOpen(true);
     };
 
-    const handleComplete = (trip: Trip) => {
-        if (!confirm(`Hoàn thành chuyến ${trip.routeName}?`)) return;
-        completeMutation.mutate(trip.id);
-    };
-
-    const handleCancel = (trip: Trip) => {
-        if (!confirm(`⚠️ Hủy chuyến ${trip.routeName} lúc ${extractTime(trip.departureTime)}? Hành động này không thể hoàn tác.`)) return;
-        cancelMutation.mutate(trip.id);
+    const handleConfirmAction = () => {
+        if (!confirmTrip) return;
+        if (confirmAction === "approve") approveMutation.mutate(confirmTrip.id);
+        else if (confirmAction === "start") startMutation.mutate(confirmTrip.id);
+        else if (confirmAction === "complete") completeMutation.mutate(confirmTrip.id);
+        else if (confirmAction === "cancel") cancelMutation.mutate(confirmTrip.id);
+        setConfirmOpen(false);
     };
 
     const handleViewDetail = (trip: Trip) => {
@@ -310,6 +357,18 @@ export default function TripListPage() {
 
     return (
         <div className="space-y-6">
+
+            {/* Shared Confirm Dialog */}
+            <ConfirmDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                title={CONFIRM_CONFIG[confirmAction].title}
+                description={CONFIRM_CONFIG[confirmAction].description}
+                confirmLabel={CONFIRM_CONFIG[confirmAction].confirmLabel}
+                variant={CONFIRM_CONFIG[confirmAction].variant}
+                isLoading={CONFIRM_CONFIG[confirmAction].isPending}
+                onConfirm={handleConfirmAction}
+            />
 
             {/* Dialogs */}
             <TripDetailDialog
