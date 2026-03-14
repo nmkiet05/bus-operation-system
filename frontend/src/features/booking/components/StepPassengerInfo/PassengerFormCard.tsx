@@ -3,14 +3,25 @@
 import { useState } from "react";
 import { PassengerInfo } from "@/features/booking/hooks/useBookingFlow";
 import { cn } from "@/lib/utils";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 interface PassengerFormCardProps {
     passenger: PassengerInfo;
     index: number;
+    isFirst: boolean;
+    isLast: boolean;
     onUpdate: (index: number, field: keyof PassengerInfo, value: string) => void;
+    onSwap: (index1: number, index2: number) => void;
 }
 
-export function PassengerFormCard({ passenger, index, onUpdate }: PassengerFormCardProps) {
+export function PassengerFormCard({ 
+    passenger, 
+    index, 
+    isFirst,
+    isLast,
+    onUpdate,
+    onSwap 
+}: PassengerFormCardProps) {
     const handleChange = (field: keyof PassengerInfo, value: string) => {
         onUpdate(index, field, value);
     };
@@ -31,7 +42,7 @@ export function PassengerFormCard({ passenger, index, onUpdate }: PassengerFormC
 
     const validatePhone = (phone: string) => {
         if (!phone) return "Vui lòng nhập số điện thoại";
-        if (!/^(0|\+84)[0-9]{9}$/.test(phone)) return "Số điện thoại không hợp lệ";
+        if (!/^0[0-9]{9}$/.test(phone)) return "Số điện thoại phải bao gồm 10 chữ số và bắt đầu bằng số 0";
         return "";
     };
 
@@ -68,16 +79,42 @@ export function PassengerFormCard({ passenger, index, onUpdate }: PassengerFormC
                     </div>
                     <span className="font-semibold text-gray-800">Hành khách {index + 1}</span>
                 </div>
-                <div className="flex gap-2">
-                    {passenger.seatCode && (
-                        <span className="px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg">
-                            Ghế đi {passenger.seatCode}
-                        </span>
-                    )}
-                    {passenger.returnSeatCode && (
-                        <span className="px-2.5 py-1 text-xs font-bold bg-orange-500 text-white rounded-lg">
-                            Ghế về {passenger.returnSeatCode}
-                        </span>
+                <div className="flex items-center gap-3">
+                    <div className="flex gap-2">
+                        {passenger.seatCode && (
+                            <span className="px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg">
+                                Ghế đi {passenger.seatCode}
+                            </span>
+                        )}
+                        {passenger.returnSeatCode && (
+                            <span className="px-2.5 py-1 text-xs font-bold bg-orange-500 text-white rounded-lg">
+                                Ghế về {passenger.returnSeatCode}
+                            </span>
+                        )}
+                    </div>
+                    {/* Swap Actions */}
+                    {!(isFirst && isLast) && (
+                        <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-0.5 bg-white">
+                            <button
+                                type="button"
+                                disabled={isFirst}
+                                onClick={() => onSwap(index, index - 1)}
+                                className="p-1.5 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-md disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-500 transition-colors"
+                                title="Chuyển lên trên"
+                            >
+                                <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                            <div className="w-px h-4 bg-gray-200" />
+                            <button
+                                type="button"
+                                disabled={isLast}
+                                onClick={() => onSwap(index, index + 1)}
+                                className="p-1.5 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-md disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-500 transition-colors"
+                                title="Chuyển xuống dưới"
+                            >
+                                <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -108,7 +145,7 @@ export function PassengerFormCard({ passenger, index, onUpdate }: PassengerFormC
                     <input
                         type="text"
                         value={passenger.idNumber}
-                        onChange={(e) => handleChange("idNumber", e.target.value)}
+                        onChange={(e) => handleChange("idNumber", e.target.value.replace(/\D/g, ''))}
                         onBlur={() => handleBlur("idNumber")}
                         placeholder="001234567890"
                         maxLength={12}
@@ -125,7 +162,8 @@ export function PassengerFormCard({ passenger, index, onUpdate }: PassengerFormC
                     <input
                         type="tel"
                         value={passenger.phone}
-                        onChange={(e) => handleChange("phone", e.target.value)}
+                        maxLength={10}
+                        onChange={(e) => handleChange("phone", e.target.value.replace(/\D/g, ''))}
                         onBlur={() => handleBlur("phone")}
                         placeholder="0901234567"
                         className={inputClasses(!!errors.phone)}

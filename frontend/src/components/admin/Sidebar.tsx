@@ -12,7 +12,8 @@ import {
     BarChart3,
     Settings,
     LogOut,
-    CalendarClock
+    CalendarClock,
+    HelpCircle
 } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,12 @@ export function AdminSidebar() {
             icon: Settings,
             href: "/admin/settings",
             roles: ["ADMIN"],
+        },
+        {
+            label: "Hỗ trợ (Support)",
+            icon: HelpCircle,
+            href: "/admin/support",
+            roles: ["ADMIN", "MANAGER", "STAFF"],
         },
     ];
 

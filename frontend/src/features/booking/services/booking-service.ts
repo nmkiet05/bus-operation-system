@@ -54,6 +54,21 @@ class BookingService {
         );
         return response.data.result;
     }
+
+    /**
+     * Hủy booking public bằng mã + SĐT (guest flow)
+     */
+    async cancelBookingPublic(code: string, phone: string): Promise<BookingResponse> {
+        const response = await axiosInstance.post<ApiResponse<BookingResponse>>(
+            `${this.BASE_URL_BOOKINGS}/public/${code}/cancel`,
+            null,
+            {
+                params: { phone },
+                skipAuth: true,
+            } as CustomAxiosRequestConfig
+        );
+        return response.data.result;
+    }
     /**
      * Lấy danh sách booking của user hiện tại
      */
@@ -107,6 +122,21 @@ class BookingService {
     async cancelTicket(ticketId: number): Promise<BookingResponse> {
         const response = await axiosInstance.post<ApiResponse<BookingResponse>>(
             `${this.BASE_URL_BOOKINGS}/tickets/${ticketId}/cancel`
+        );
+        return response.data.result;
+    }
+
+    /**
+     * Hủy vé public bằng mã + SĐT (guest flow)
+     */
+    async cancelTicketPublic(code: string, phone: string, ticketId: number): Promise<BookingResponse> {
+        const response = await axiosInstance.post<ApiResponse<BookingResponse>>(
+            `${this.BASE_URL_BOOKINGS}/public/${code}/tickets/${ticketId}/cancel`,
+            null,
+            {
+                params: { phone },
+                skipAuth: true,
+            } as CustomAxiosRequestConfig
         );
         return response.data.result;
     }

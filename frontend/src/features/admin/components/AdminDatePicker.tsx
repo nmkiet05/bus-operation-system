@@ -34,7 +34,7 @@ export function AdminDatePicker({
     minDate,
     disabled = false,
     className,
-    allowPastDates = false,
+    allowPastDates = true,
     clearable = false,
 }: AdminDatePickerProps) {
     const [open, setOpen] = React.useState(false);

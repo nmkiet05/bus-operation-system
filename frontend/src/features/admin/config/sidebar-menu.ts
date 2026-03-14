@@ -116,4 +116,15 @@ export const ADMIN_SIDEBAR_MENU: SidebarMenuGroup[] = [
             },
         ],
     },
+    {
+        label: "Khác",
+        items: [
+            {
+                title: "Hỗ trợ (Support)",
+                href: "/admin/support",
+                icon: "HelpCircle",
+                allowedRoles: ["ROLE_ADMIN", "ROLE_MANAGER", "ROLE_STAFF"],
+            },
+        ],
+    },
 ];

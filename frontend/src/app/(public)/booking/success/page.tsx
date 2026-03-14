@@ -286,9 +286,15 @@ function BookingSuccessContent() {
                                             </div>
                                         )}
 
-                                        {/* Giá vé & Trạng thái */}
+                                        {/* Giá vé & Trạng thái & Hành khách */}
                                         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                                             <div>
+                                                <p className="text-xs text-gray-500">Hành khách</p>
+                                                <p className="font-semibold text-gray-900 text-sm truncate max-w-[120px]" title={ticket.passengerName || booking.guestName}>
+                                                    {ticket.passengerName || booking.guestName}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
                                                 <p className="text-xs text-gray-500">Giá vé</p>
                                                 <p className="font-bold text-lg text-emerald-600">
                                                     {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(ticket.price))}
@@ -347,28 +353,7 @@ function BookingSuccessContent() {
                     </Button>
                 </div>
 
-                {(isPending || isPaid) && (
-                    <div className="mb-6">
-                        <Button
-                            variant="destructive"
-                            onClick={async () => {
-                                if (!confirm("Bạn có chắc muốn hủy đơn đặt vé này?")) return;
-                                try {
-                                    await bookingService.cancelBooking(booking.id);
-                                    toast.success("Đã hủy đơn đặt vé thành công!");
-                                    window.location.reload();
-                                } catch {
-                                    toast.error("Không thể hủy đơn đặt vé");
-                                }
-                            }}
-                            className="w-full h-11 gap-2"
-                        >
-                            Hủy đơn đặt vé
-                        </Button>
-                    </div>
-                )}
-
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-2 mt-6">
                     <Button variant="ghost" onClick={() => router.push("/")} className="gap-2 text-gray-600 hover:text-gray-900">
                         <ArrowLeft className="h-4 w-4" />
                         Về trang chủ

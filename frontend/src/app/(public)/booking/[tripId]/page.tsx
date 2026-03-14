@@ -85,24 +85,30 @@ export default function BookingPage() {
 
             // Outbound tickets
             bookingData.selectedSeats.forEach(seatNum => {
+                const passenger = bookingData.passengers.find(p => p.seatCode === seatNum);
                 tickets.push({
                     tripId: trip.id,
                     seatNumber: seatNum,
                     price: trip.price,
                     pickupPointId: bookingData.pickupPointId || undefined,
                     dropoffPointId: bookingData.dropoffPointId || undefined,
+                    passengerName: passenger?.fullName || bookingData.contactInfo?.fullName,
+                    passengerPhone: passenger?.phone || bookingData.contactInfo?.phone,
                 });
             });
 
             // Return tickets (if any)
             if (isRoundTrip && returnTrip) {
                 bookingData.returnSelectedSeats.forEach(seatNum => {
+                    const returnPassenger = bookingData.passengers.find(p => p.returnSeatCode === seatNum || p.seatCode === seatNum); // Fallback to seatCode loosely just in case
                     tickets.push({
                         tripId: returnTrip.id,
                         seatNumber: seatNum,
                         price: returnTrip.price,
                         pickupPointId: bookingData.returnPickupPointId || undefined,
                         dropoffPointId: bookingData.returnDropoffPointId || undefined,
+                        passengerName: returnPassenger?.fullName || bookingData.contactInfo?.fullName,
+                        passengerPhone: returnPassenger?.phone || bookingData.contactInfo?.phone,
                     });
                 });
             }
@@ -110,9 +116,9 @@ export default function BookingPage() {
             // 2. Prepare Booking Request
             const request: CreateBookingRequest = {
                 userId: user?.id,
-                guestName: bookingData.passengers[0]?.fullName || "Guest", // Fallback, but passengers should valid
-                guestPhone: bookingData.contactInfo.phone,
-                guestEmail: bookingData.contactInfo.email,
+                guestName: bookingData.contactInfo?.fullName || "Guest", // Lấy chuẩn tên Đại Diện từ Form Liên Hệ
+                guestPhone: bookingData.contactInfo?.phone || "",
+                guestEmail: bookingData.contactInfo?.email || "",
                 paymentMethod: bookingData.paymentMethod || "COUNTER",
                 idempotencyKey: generateUUID(),
                 tickets: tickets
@@ -755,6 +761,7 @@ export default function BookingPage() {
                     {/* Step 3: Passenger Information */}
                     {currentStep === 3 && (
                         <StepPassengerInfo
+                            user={user}
                             selectedSeats={bookingData.selectedSeats}
                             returnSelectedSeats={bookingData.returnSelectedSeats}
                             passengers={bookingData.passengers}

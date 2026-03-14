@@ -80,11 +80,11 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
 };
 
 const ZONE_CONFIG: Record<string, { label: string; className: string }> = {
-    PLANNING: { label: "Kế hoạch", className: "bg-blue-100 text-blue-700" },
-    PRE_DEPARTURE: { label: "Trước xuất bến", className: "bg-yellow-100 text-yellow-700" },
-    NEAR_DEPARTURE: { label: "Gần xuất bến", className: "bg-orange-100 text-orange-700" },
-    POST_DEPARTURE: { label: "Sau xuất bến", className: "bg-red-100 text-red-700" },
-    MID_ROUTE: { label: "Giữa đường", className: "bg-red-100 text-red-800" },
+    STANDARD: { label: "> 60 phút", className: "bg-blue-100 text-blue-700" },
+    URGENT: { label: "15-60 phút", className: "bg-yellow-100 text-yellow-700" },
+    CRITICAL: { label: "< 15 phút", className: "bg-orange-100 text-orange-700" },
+    DEPARTED: { label: "Đã xuất bến", className: "bg-red-100 text-red-700" },
+    MID_ROUTE: { label: "Sự cố dọc đường", className: "bg-red-100 text-red-800" },
 };
 
 const STATUS_FILTERS = [
@@ -341,13 +341,13 @@ export default function TripChangesPage() {
 
                                             {/* Lý do */}
                                             <td className="py-3.5 px-4 max-w-[200px]">
-                                                <p className="text-gray-700 text-xs truncate" title={req.reason}>
-                                                    {req.reason || "—"}
+                                                <p className="text-gray-700 text-xs truncate" title={req.requestReason}>
+                                                    {req.requestReason || "—"}
                                                 </p>
-                                                {req.rejectReason && (
-                                                    <p className="text-red-500 text-xs mt-0.5 truncate flex items-center gap-1" title={req.rejectReason}>
+                                                {req.rejectedReason && (
+                                                    <p className="text-red-500 text-xs mt-0.5 truncate flex items-center gap-1" title={req.rejectedReason}>
                                                         <MessageSquare className="h-3 w-3 shrink-0" />
-                                                        {req.rejectReason}
+                                                        {req.rejectedReason}
                                                     </p>
                                                 )}
                                             </td>
@@ -355,7 +355,7 @@ export default function TripChangesPage() {
                                             {/* Người yêu cầu */}
                                             <td className="py-3.5 px-4">
                                                 <span className="text-gray-700 font-medium text-xs">
-                                                    {req.requestedByName || `#${req.requestedById}`}
+                                                    {req.createdBy ? `User #${req.createdBy}` : "—"}
                                                 </span>
                                             </td>
 

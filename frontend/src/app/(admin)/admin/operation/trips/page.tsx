@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { cn } from "@/lib/utils";
 import {
     RefreshCw,
@@ -102,6 +102,7 @@ export default function TripListPage() {
         return today.toISOString().split("T")[0];
     });
     const [statusFilter, setStatusFilter] = useState("ALL");
+    const [groupFilter, setGroupFilter] = useState("ALL");
 
     // Detail Dialog State
     const [detailTrip, setDetailTrip] = useState<Trip | null>(null);
@@ -247,6 +248,66 @@ export default function TripListPage() {
         });
     }, [trips]);
 
+    // Group by Bus
+    const groupedTripsByBus = useMemo(() => {
+        const groups: Record<string, Trip[]> = {};
+        sortedTrips.forEach(trip => {
+            let busKey = "";
+            if (trip.status === "COMPLETED" || trip.status === "CANCELLED") {
+                busKey = "ĐÃ HOÀN THÀNH / HỦY";
+            } else if (trip.busLicensePlate) {
+                busKey = `Xe ${trip.busLicensePlate} (${trip.busTypeName || ''})`;
+            } else {
+                busKey = "CHƯA PHÂN CÔNG XE";
+            }
+            if (!groups[busKey]) groups[busKey] = [];
+            groups[busKey].push(trip);
+        });
+        
+        // Trước tiên, sort danh sách các chuyến xe bên trong mỗi Nhóm Xe theo thời gian khởi hành thực tế
+        Object.values(groups).forEach(tripList => {
+             tripList.sort((a, b) => {
+                  const dateA = new Date(`${a.departureDate}T${a.departureTime || '00:00'}`).getTime();
+                  const dateB = new Date(`${b.departureDate}T${b.departureTime || '00:00'}`).getTime();
+                  if (isNaN(dateA) || isNaN(dateB)) {
+                        return String(a.departureTime || "").localeCompare(String(b.departureTime || ""));
+                  }
+                  return dateA - dateB;
+             });
+        });
+
+        // Thứ hai, sort tên CÁC NHÓM XE với nhau (Dựa trên chuyến khởi hành Sớm nhất của nhóm)
+        const keys = Object.keys(groups).sort((a, b) => {
+             // Đẩy "Không xe" và "Hoàn Thành" xuống cuối cùng
+             const getWeight = (k: string) => {
+                  if (k === "ĐÃ HOÀN THÀNH / HỦY") return 2;
+                  if (k === "CHƯA PHÂN CÔNG XE") return 1;
+                  return 0; // Nhóm xe bình thường
+             };
+             
+             const weightA = getWeight(a);
+             const weightB = getWeight(b);
+             if (weightA !== weightB) return weightA - weightB;
+
+             // Lấy chuyến đi sớm nhất của Nhóm A và Nhóm B
+             const firstTripA = groups[a][0];
+             const firstTripB = groups[b][0];
+
+             if (firstTripA && firstTripB) {
+                  const dateA = new Date(`${firstTripA.departureDate}T${firstTripA.departureTime || '00:00'}`).getTime();
+                  const dateB = new Date(`${firstTripB.departureDate}T${firstTripB.departureTime || '00:00'}`).getTime();
+                  if (!isNaN(dateA) && !isNaN(dateB) && dateA !== dateB) {
+                       return dateA - dateB; // Trọng số Nhóm Xe nào chạy TRƯỚC sẽ đứng trên
+                  }
+             }
+
+             // Nếu cùng giờ, fallback sort Alphabet theo Biển Số
+             return a.localeCompare(b);
+        });
+
+        return { groups, keys };
+    }, [sortedTrips]);
+
     return (
         <div className="space-y-6">
 
@@ -344,6 +405,19 @@ export default function TripListPage() {
                         </SelectContent>
                     </Select>
 
+                    {/* Group Filter */}
+                    <Select value={groupFilter} onValueChange={setGroupFilter}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Nhóm xe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Tất cả nhóm</SelectItem>
+                            {groupedTripsByBus.keys.map(k => (
+                                <SelectItem key={k} value={k}>{k}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     {/* Result Count */}
                     <div className="flex items-center text-sm text-gray-500 sm:ml-auto">
                         {isLoading ? (
@@ -389,13 +463,31 @@ export default function TripListPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                sortedTrips.map((trip) => {
-                                    const statusCfg = STATUS_CONFIG[trip.status] || STATUS_CONFIG.SCHEDULED;
+                                groupedTripsByBus.keys
+                                    .filter(key => groupFilter === "ALL" || key === groupFilter)
+                                    .map((busKey) => (
+                                    <Fragment key={busKey}>
+                                        <tr className="bg-gray-100/80 border-b border-t border-gray-200">
+                                            <td colSpan={8} className="py-2.5 px-4 hover:bg-transparent">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded bg-brand-blue/10 flex items-center justify-center">
+                                                        <Bus className="h-3.5 w-3.5 text-brand-blue" />
+                                                    </div>
+                                                    <span className="font-bold text-gray-800 text-sm">{busKey}</span>
+                                                    <span className="bg-white px-2 py-0.5 rounded-full text-xs font-semibold text-gray-500 border border-gray-200">
+                                                        {groupedTripsByBus.groups[busKey].length} chuyến
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {groupedTripsByBus.groups[busKey].map((trip) => {
+                                            const statusCfg = STATUS_CONFIG[trip.status] || STATUS_CONFIG.SCHEDULED;
                                     const StatusIcon = statusCfg.icon;
-                                    const canApprove = trip.status === "SCHEDULED";
+                                    const isUnassignedGroup = busKey === "CHƯA PHÂN CÔNG XE";
+                                    const canApprove = trip.status === "SCHEDULED" && !isUnassignedGroup;
                                     const canStart = trip.status === "APPROVED";
                                     const canComplete = trip.status === "RUNNING";
-                                    const canCancel = trip.status === "SCHEDULED" || trip.status === "APPROVED";
+                                    const canCancel = (trip.status === "SCHEDULED" || trip.status === "APPROVED") && !isUnassignedGroup;
 
                                     return (
                                         <tr key={trip.id} className="hover:bg-gray-50/50 transition-colors">
@@ -486,6 +578,13 @@ export default function TripListPage() {
                                                         <Eye className="h-3 w-3" />
                                                     </button>
 
+                                                    {isUnassignedGroup && trip.status === "SCHEDULED" && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200 whitespace-nowrap" title="Vui lòng bấm vào [Chi tiết] hoặc [Sửa] để phân công xe/tài xế trước khi duyệt">
+                                                            <AlertTriangle className="h-2.5 w-2.5" />
+                                                            Thiếu dữ liệu
+                                                        </span>
+                                                    )}
+
                                                     {canApprove && (
                                                         <button
                                                             onClick={() => handleApprove(trip)}
@@ -530,7 +629,10 @@ export default function TripListPage() {
                                             </td>
                                         </tr>
                                     );
-                                })
+                                        })
+                                    }
+                                    </Fragment>
+                                ))
                             )}
                         </tbody>
                     </table>

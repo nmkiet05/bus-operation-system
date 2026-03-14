@@ -31,6 +31,7 @@ export interface PassengerInfo {
 }
 
 export interface ContactInfo {
+    fullName: string;
     email: string;
     phone: string;
     notes?: string;
@@ -47,7 +48,11 @@ export const useBookingFlow = (tripId: number) => {
         returnPickupPointId: null,
         returnDropoffPointId: null,
         passengers: [],
-        contactInfo: null,
+        contactInfo: {
+            fullName: "",
+            email: "",
+            phone: "",
+        },
         paymentMethod: "COUNTER",
     });
 
@@ -120,7 +125,7 @@ export const useBookingFlow = (tripId: number) => {
                             (p) => p.fullName.trim() !== "" && p.idNumber.trim() !== "" && p.phone.trim() !== ""
                         ) &&
                         bookingData.contactInfo !== null &&
-                        bookingData.contactInfo.email.trim() !== "" &&
+                        bookingData.contactInfo.fullName.trim() !== "" &&
                         bookingData.contactInfo.phone.trim() !== ""
                     );
                 case 4: // Payment

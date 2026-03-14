@@ -6,23 +6,31 @@ import axiosClient from "@/services/http/axios";
 export interface TripChangeRequest {
     id: number;
     tripId: number;
+    routeName?: string;
+    licensePlate?: string;
+
     changeType: string; // REPLACE_DRIVER, REPLACE_BUS, REPLACE_BOTH
-    urgencyZone: string; // PLANNING, PRE_DEPARTURE, NEAR_DEPARTURE, POST_DEPARTURE, MID_ROUTE
-    reason: string;
-    status: string; // PENDING, APPROVED, REJECTED, CANCELLED, AUTO_APPROVED, ROLLBACK
+    
     oldDriverId?: number;
     oldDriverName?: string;
     newDriverId?: number;
     newDriverName?: string;
+    
     oldBusId?: number;
-    oldBusPlate?: string;
     newBusId?: number;
-    newBusPlate?: string;
-    requestedById: number;
-    requestedByName: string;
-    approvedById?: number;
-    approvedByName?: string;
-    rejectReason?: string;
+
+    requestReason?: string;
+    status: string; // PENDING, APPROVED, REJECTED, CANCELLED, AUTO_APPROVED, ROLLBACK
+    isEmergency?: boolean;
+
+    urgencyZone: string; // STANDARD, URGENT, CRITICAL, DEPARTED, MID_ROUTE
+    incidentType?: string;
+    incidentGps?: string;
+
+    createdBy?: number;
+    approvedBy?: number;
+    rejectedReason?: string;
+
     createdAt: string;
     updatedAt: string;
 }
@@ -62,32 +70,29 @@ export const tripChangeService = {
     /**
      * Duyệt yêu cầu
      */
-    approve: async (id: number): Promise<TripChangeRequest> => {
-        const { data } = await axiosClient.post<ApiResponse<TripChangeRequest>>(
+    approve: async (id: number): Promise<void> => {
+        await axiosClient.post<ApiResponse<void>>(
             `/operation/trip-changes/${id}/approve`
         );
-        return data.result;
     },
 
     /**
      * Từ chối yêu cầu
      */
-    reject: async (id: number, reason: string): Promise<TripChangeRequest> => {
-        const { data } = await axiosClient.post<ApiResponse<TripChangeRequest>>(
+    reject: async (id: number, reason: string): Promise<void> => {
+        await axiosClient.post<ApiResponse<void>>(
             `/operation/trip-changes/${id}/reject`,
             null,
             { params: { reason } }
         );
-        return data.result;
     },
 
     /**
      * Rollback yêu cầu đã duyệt
      */
-    rollback: async (id: number): Promise<TripChangeRequest> => {
-        const { data } = await axiosClient.post<ApiResponse<TripChangeRequest>>(
+    rollback: async (id: number): Promise<void> => {
+        await axiosClient.post<ApiResponse<void>>(
             `/operation/trip-changes/${id}/rollback`
         );
-        return data.result;
     },
 };

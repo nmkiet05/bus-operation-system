@@ -3,13 +3,18 @@ export enum BookingStatus {
     CONFIRMED = 'CONFIRMED',
     CANCELLED = 'CANCELLED',
     EXPIRED = 'EXPIRED',
+    REFUNDED = 'REFUNDED',
 }
 
 export enum TicketStatus {
     AVAILABLE = 'AVAILABLE', // Frontend logic only
+    ACTIVE = 'ACTIVE', // Mới tạo (mặc định)
     PENDING = 'PENDING',
     CONFIRMED = 'CONFIRMED',
+    CHECKED_IN = 'CHECKED_IN', // Đã lên xe
     CANCELLED = 'CANCELLED',
+    REFUNDED = 'REFUNDED', // Hoàn tiền
+    NO_SHOW = 'NO_SHOW', // Vắng mặt
     EXPIRED = 'EXPIRED',
 }
 
@@ -20,6 +25,8 @@ export interface TicketRequest {
     fareConfigId?: number; // Vé trẻ em, người già...
     pickupPointId?: number;
     dropoffPointId?: number;
+    passengerName?: string;
+    passengerPhone?: string;
 }
 
 export interface CreateBookingRequest {
@@ -50,6 +57,10 @@ export interface TicketResponse {
     // Điểm đón/trả
     pickupPointName?: string;
     dropoffPointName?: string;
+    
+    // Hành khách thực tế
+    passengerName?: string;
+    passengerPhone?: string;
 }
 
 export interface BookingResponse {

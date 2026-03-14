@@ -155,6 +155,7 @@ export async function getTripDetail(tripId: number): Promise<TripDetail> {
 
 /**
  * Lấy sơ đồ ghế của chuyến xe
+ * @deprecated Hàm này gọi endpoint cũ, vui lòng thay bằng `bookingService.getSeatMap`
  */
 export async function getSeatMap(tripId: number): Promise<{
     seatMap: unknown;
@@ -165,6 +166,6 @@ export async function getSeatMap(tripId: number): Promise<{
         seatMap: unknown;
         bookedSeats: string[];
         lockedSeats: string[];
-    }>>(`/trips/${tripId}/seats`);
+    }>>(`/operation/trips/${tripId}/seat-map`);
     return response.data.result;
 }

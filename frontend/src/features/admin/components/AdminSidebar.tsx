@@ -26,6 +26,7 @@ import {
     ArrowLeftRight,
     MapPin,
     Warehouse,
+    HelpCircle,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -47,6 +48,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
     ArrowLeftRight,
     MapPin,
     Warehouse,
+    HelpCircle,
 };
 
 /**

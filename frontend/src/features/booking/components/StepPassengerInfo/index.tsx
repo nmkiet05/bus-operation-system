@@ -7,6 +7,7 @@ import { ContactInfoSection } from "./ContactInfoSection";
 import { User } from "lucide-react";
 
 interface StepPassengerInfoProps {
+    user?: { id?: string | number; username?: string; fullName?: string; phone?: string; email?: string } | null;
     selectedSeats: string[];
     returnSelectedSeats: string[];
     passengers: PassengerInfo[];
@@ -15,6 +16,7 @@ interface StepPassengerInfoProps {
 }
 
 export function StepPassengerInfo({
+    user,
     selectedSeats,
     returnSelectedSeats,
     passengers: initialPassengers,
@@ -43,8 +45,9 @@ export function StepPassengerInfo({
     const [contactInfo, setContactInfo] = useState<ContactInfo>(() => {
         return (
             initialContact || {
-                email: "",
-                phone: "",
+                fullName: user?.fullName || "",
+                email: user?.email || "",
+                phone: user?.phone || "",
                 notes: "",
             }
         );
@@ -53,21 +56,42 @@ export function StepPassengerInfo({
     // Update parent when data changes
     useEffect(() => {
         onUpdate(passengers, contactInfo);
-    }, [passengers, contactInfo, onUpdate]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [passengers, contactInfo]);
 
     const updatePassenger = (index: number, field: keyof PassengerInfo, value: string) => {
         setPassengers((prev) => {
             const updated = [...prev];
             updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
+    };
 
-            // Auto-fill contact phone from first passenger
-            if (index === 0 && field === "phone" && value) {
-                setContactInfo((prevContact) => ({
-                    ...prevContact,
-                    phone: value,
-                }));
-            }
+    const handleSwapPassengers = (index1: number, index2: number) => {
+        setPassengers((prev) => {
+            const updated = [...prev];
+            // Swap all fields EXCEPT id, seatCode, returnSeatCode
+            const p1 = updated[index1];
+            const p2 = updated[index2];
+            
+            const tempFullName = p1.fullName;
+            const tempIdNumber = p1.idNumber;
+            const tempPhone = p1.phone;
 
+            updated[index1] = {
+                ...p1,
+                fullName: p2.fullName,
+                idNumber: p2.idNumber,
+                phone: p2.phone
+            };
+
+            updated[index2] = {
+                ...p2,
+                fullName: tempFullName,
+                idNumber: tempIdNumber,
+                phone: tempPhone
+            };
+            
             return updated;
         });
     };
@@ -94,14 +118,22 @@ export function StepPassengerInfo({
                             key={passenger.id}
                             passenger={passenger}
                             index={index}
+                            isFirst={index === 0}
+                            isLast={index === passengers.length - 1}
                             onUpdate={updatePassenger}
+                            onSwap={handleSwapPassengers}
                         />
                     ))}
                 </div>
             </div>
 
             {/* Contact Info Section */}
-            <ContactInfoSection contactInfo={contactInfo} onUpdate={setContactInfo} />
+            <ContactInfoSection 
+                user={user}
+                passengers={passengers}
+                contactInfo={contactInfo} 
+                onUpdate={setContactInfo} 
+            />
         </div>
     );
 }

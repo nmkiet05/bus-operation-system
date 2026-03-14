@@ -58,7 +58,7 @@ export default function BookingLookupPage() {
 
         setCancelling(true);
         try {
-            await bookingService.cancelBooking(booking.id);
+            await bookingService.cancelBookingPublic(code.trim(), phone.trim());
             toast.success("Đã hủy đơn đặt vé thành công!");
             // Reload booking
             const updated = await bookingService.searchBooking(code.trim(), phone.trim());
@@ -79,7 +79,7 @@ export default function BookingLookupPage() {
         if (!confirm("Bạn có chắc muốn hủy vé này?")) return;
         setCancellingTicketId(ticketId);
         try {
-            await bookingService.cancelTicket(ticketId);
+            await bookingService.cancelTicketPublic(code.trim(), phone.trim(), ticketId);
             toast.success("Đã hủy vé thành công!");
             const updated = await bookingService.searchBooking(code.trim(), phone.trim());
             setBooking(updated);
@@ -343,6 +343,30 @@ export default function BookingLookupPage() {
                                                             <div className="flex items-start gap-2 text-gray-600">
                                                                 <MapPin className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                                                                 <span><span className="text-gray-500">Trả:</span> {ticket.dropoffPointName}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Hành khách */}
+                                                {(ticket.passengerName || ticket.passengerPhone) && (
+                                                    <div className="grid grid-cols-2 gap-3 bg-gray-50/80 rounded-lg p-3">
+                                                        {ticket.passengerName && (
+                                                            <div className="flex items-center gap-2">
+                                                                <User className="h-4 w-4 text-brand-blue flex-shrink-0" />
+                                                                <div>
+                                                                    <p className="text-[11px] text-gray-400">Người đi</p>
+                                                                    <p className="font-semibold text-gray-700 text-sm line-clamp-1" title={ticket.passengerName}>{ticket.passengerName}</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {ticket.passengerPhone && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Phone className="h-4 w-4 text-brand-blue flex-shrink-0" />
+                                                                <div>
+                                                                    <p className="text-[11px] text-gray-400">Điện thoại</p>
+                                                                    <p className="font-semibold text-gray-700 text-sm">{ticket.passengerPhone}</p>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
