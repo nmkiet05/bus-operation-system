@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 
 // Status config
@@ -92,11 +93,24 @@ const STATUS_FILTERS = [
     { value: "REJECTED", label: "Từ chối" },
 ];
 
+const INCIDENT_TYPE_OPTIONS = [
+    { value: "FATIGUE_SWAP", label: "Mệt mỏi cần đổi tài" },
+    { value: "DRIVER_HEALTH", label: "Sức khỏe tài xế" },
+    { value: "VEHICLE_BREAKDOWN", label: "Xe hỏng dọc đường" },
+    { value: "TRAFFIC_ACCIDENT", label: "Tai nạn giao thông" },
+];
+
 export default function TripChangesPage() {
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [rejectTarget, setRejectTarget] = useState<TripChangeRequest | null>(null);
     const [rejectReason, setRejectReason] = useState("");
+    const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
+    const [incidentTripId, setIncidentTripId] = useState("");
+    const [incidentDriverId, setIncidentDriverId] = useState("");
+    const [incidentType, setIncidentType] = useState("FATIGUE_SWAP");
+    const [incidentGps, setIncidentGps] = useState("");
+    const [incidentReason, setIncidentReason] = useState("");
 
     const queryClient = useQueryClient();
 
@@ -164,6 +178,40 @@ export default function TripChangesPage() {
         },
     });
 
+    const incidentMutation = useMutation({
+        mutationFn: (payload: {
+            tripId: number;
+            newDriverId: number;
+            incidentType: "FATIGUE_SWAP" | "DRIVER_HEALTH" | "VEHICLE_BREAKDOWN" | "TRAFFIC_ACCIDENT";
+            incidentGps?: string;
+            reason: string;
+        }) =>
+            tripChangeService.incident(
+                {
+                    tripId: payload.tripId,
+                    changeType: "INCIDENT_SWAP",
+                    reason: payload.reason,
+                    newDriverId: payload.newDriverId,
+                },
+                payload.incidentType,
+                payload.incidentGps
+            ),
+        onSuccess: () => {
+            toast.success("Đã tạo sự cố dọc đường và gửi hậu kiểm");
+            setIncidentDialogOpen(false);
+            setIncidentTripId("");
+            setIncidentDriverId("");
+            setIncidentType("FATIGUE_SWAP");
+            setIncidentGps("");
+            setIncidentReason("");
+            queryClient.invalidateQueries({ queryKey: ["trip-changes"] });
+        },
+        onError: (error: unknown) => {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err?.response?.data?.message || "Lỗi báo sự cố dọc đường");
+        },
+    });
+
     const handleApprove = (req: TripChangeRequest) => {
         if (!confirm(`Duyệt yêu cầu ${CHANGE_TYPE_LABELS[req.changeType] || req.changeType}?`)) return;
         approveMutation.mutate(req.id);
@@ -206,6 +254,24 @@ export default function TripChangesPage() {
     const handleRollback = (req: TripChangeRequest) => {
         if (!confirm(`Hoàn tác yêu cầu ${CHANGE_TYPE_LABELS[req.changeType] || req.changeType}?`)) return;
         rollbackMutation.mutate(req.id);
+    };
+
+    const handleSubmitIncident = () => {
+        const tripId = Number(incidentTripId);
+        const newDriverId = Number(incidentDriverId);
+
+        if (!tripId || !newDriverId || !incidentReason.trim()) {
+            toast.error("Vui lòng nhập Trip ID, Driver ID và lý do sự cố");
+            return;
+        }
+
+        incidentMutation.mutate({
+            tripId,
+            newDriverId,
+            incidentType: incidentType as "FATIGUE_SWAP" | "DRIVER_HEALTH" | "VEHICLE_BREAKDOWN" | "TRAFFIC_ACCIDENT",
+            incidentGps: incidentGps.trim() || undefined,
+            reason: incidentReason.trim(),
+        });
     };
 
     // Stats
@@ -257,6 +323,83 @@ export default function TripChangesPage() {
                 </DialogContent>
             </Dialog>
 
+            {/* Incident Dialog */}
+            <Dialog open={incidentDialogOpen} onOpenChange={setIncidentDialogOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-orange-500" />
+                            Báo sự cố dọc đường (MID_ROUTE)
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+                        <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-gray-600">Trip ID</p>
+                            <Input
+                                type="number"
+                                placeholder="Ví dụ: 123"
+                                value={incidentTripId}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncidentTripId(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-gray-600">Driver ID thay thế</p>
+                            <Input
+                                type="number"
+                                placeholder="Ví dụ: 45"
+                                value={incidentDriverId}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncidentDriverId(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-xs font-medium text-gray-600">Loại sự cố</p>
+                            <Select value={incidentType} onValueChange={setIncidentType}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn loại sự cố" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {INCIDENT_TYPE_OPTIONS.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-xs font-medium text-gray-600">GPS (không bắt buộc)</p>
+                            <Input
+                                placeholder="Ví dụ: 10.762622,106.660172"
+                                value={incidentGps}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncidentGps(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-xs font-medium text-gray-600">Lý do sự cố</p>
+                            <Textarea
+                                placeholder="Mô tả ngắn gọn tình huống xảy ra sự cố..."
+                                rows={3}
+                                value={incidentReason}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIncidentReason(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIncidentDialogOpen(false)}>
+                            Hủy
+                        </Button>
+                        <Button
+                            onClick={handleSubmitIncident}
+                            disabled={incidentMutation.isPending}
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                            {incidentMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : null}
+                            Gửi sự cố
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -267,14 +410,23 @@ export default function TripChangesPage() {
                         Duyệt hoặc từ chối yêu cầu đổi tài xế / xe
                     </p>
                 </div>
-                <button
-                    onClick={() => refetch()}
-                    disabled={isLoading}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
-                >
-                    <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-                    Làm mới
-                </button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        onClick={() => setIncidentDialogOpen(true)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        Báo sự cố
+                    </Button>
+                    <button
+                        onClick={() => refetch()}
+                        disabled={isLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+                    >
+                        <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                        Làm mới
+                    </button>
+                </div>
             </div>
 
             {/* Stats */}

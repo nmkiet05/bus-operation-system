@@ -160,3 +160,36 @@ Thêm khả năng thao tác nghiệp vụ thực tế ngay trên màn hình Trip
 ### Ghi chú thiết kế
 - Lát 1 tập trung vào hai thao tác có ảnh hưởng trực tiếp vận hành (review/rollback), chưa thêm form tạo incident tại UI.
 - Luồng `incident` sẽ triển khai ở lát tiếp theo để giữ thay đổi nhỏ và dễ rollback.
+
+---
+
+## Phần 05 — Hoàn thiện FE flow (lát 2: tạo incident MID_ROUTE)
+
+### Mục tiêu
+Bổ sung khả năng tạo yêu cầu sự cố dọc đường trực tiếp từ UI quản trị, nối đúng endpoint BE đã có.
+
+### Thay đổi
+1. Thêm dialog `Báo sự cố dọc đường (MID_ROUTE)` tại màn Trip Changes:
+- File: `frontend/src/app/(admin)/admin/operation/trip-changes/page.tsx`
+- Trường nhập liệu:
+  - `Trip ID`
+  - `Driver ID thay thế`
+  - `Loại sự cố` (FATIGUE_SWAP, DRIVER_HEALTH, VEHICLE_BREAKDOWN, TRAFFIC_ACCIDENT)
+  - `GPS` (không bắt buộc)
+  - `Lý do sự cố`
+
+2. Bổ sung mutation gọi API incident:
+- Gọi `tripChangeService.incident(...)`
+- Mapping payload theo contract:
+  - body: `tripId`, `changeType: INCIDENT_SWAP`, `reason`, `newDriverId`
+  - query params: `incidentType`, `incidentGps`
+
+3. Bổ sung CTA theo style hiện tại:
+- Thêm nút `Báo sự cố` cạnh nút `Làm mới` ở phần header màn hình.
+
+### Kiểm tra
+- Diagnostics file FE sau chỉnh sửa: **No errors found**.
+
+### Ghi chú thiết kế
+- Lát này dùng input trực tiếp theo ID để giữ thay đổi nhỏ và tránh kéo thêm phụ thuộc data source mới (trip/driver picker) trong cùng phân đoạn.
+- Có thể nâng cấp ở lát tiếp theo bằng selector dữ liệu thật (running trip + driver khả dụng) nếu cần trải nghiệm tốt hơn.
