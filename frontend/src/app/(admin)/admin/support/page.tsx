@@ -94,7 +94,7 @@ const SUPPORT_TOPICS = [
                     <div className="border border-slate-200 rounded-lg p-3">
                         <strong className="text-slate-900 line-clamp-1">3.2. Cập nhật trạng thái chuyến</strong>
                         <p className="text-sm mt-1">
-                            Trạng thái một chuyến chạy qua các bước: SCHEDULED (Đã lên lịch) → BOARDING (Đang đón khách) → IN_TRANSIT (Đang đi) → ARRIVED (Đã đến) → COMPLETED (Hoàn thành) hoặc CANCELLED.
+                            Trạng thái vận hành chuẩn của chuyến: SCHEDULED (Đã lên lịch) → APPROVED (Đã duyệt xuất bến) → RUNNING (Đang chạy) → COMPLETED (Hoàn thành) hoặc CANCELLED (Hủy chuyến).
                         </p>
                     </div>
                 </div>
@@ -102,8 +102,97 @@ const SUPPORT_TOPICS = [
         )
     },
     {
+        id: "emergency-flow",
+        title: "4. Emergency Flow 5 Vùng (Trip Change)",
+        icon: ShieldAlert,
+        color: "text-rose-500",
+        bgColor: "bg-rose-50",
+        content: (
+            <div className="space-y-5 text-slate-600">
+                <p>
+                    Emergency Flow 5 Vùng là quy trình xử lý thay đổi tài xế/xe theo mức độ khẩn cấp gần giờ khởi hành hoặc khi chuyến đang chạy.
+                    Mục tiêu là đảm bảo phản ứng nhanh nhưng vẫn giữ kiểm soát nghiệp vụ và audit đầy đủ.
+                </p>
+
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 font-semibold text-slate-900">
+                        4.1. Định nghĩa 5 vùng thời gian
+                    </div>
+                    <div className="p-4 space-y-2 text-sm">
+                        <p><span className="font-semibold text-blue-700">STANDARD</span>: Trước giờ chạy đủ xa, đi luồng duyệt bình thường.</p>
+                        <p><span className="font-semibold text-amber-700">URGENT</span>: Cận giờ xuất bến, có cơ chế timeout và escalate.</p>
+                        <p><span className="font-semibold text-orange-700">CRITICAL</span>: Rất sát giờ chạy, auto-execute và yêu cầu hậu kiểm.</p>
+                        <p><span className="font-semibold text-red-700">DEPARTED</span>: Chuyến đã rời bến (RUNNING), không cho reject trực tiếp.</p>
+                        <p><span className="font-semibold text-rose-700">MID_ROUTE</span>: Sự cố dọc đường, bắt buộc ghi nhận incident và hậu kiểm.</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="border border-slate-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-slate-900 mb-2">4.2. Rule thao tác theo vùng</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                            <li>STANDARD, URGENT, CRITICAL: có thể đi nhánh reject theo quy trình tương ứng.</li>
+                            <li>DEPARTED, MID_ROUTE: cấm reject trực tiếp ở luồng duyệt thường.</li>
+                            <li>Vùng auto-execute phải dùng hậu kiểm để xác nhận đạt/không đạt.</li>
+                            <li>MID_ROUTE yêu cầu bổ sung thông tin sự cố: incident type + GPS (nếu có).</li>
+                        </ul>
+                    </div>
+                    <div className="border border-slate-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-slate-900 mb-2">4.3. Trạng thái canonical</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                            <li>PENDING: yêu cầu mới tạo, chờ xử lý.</li>
+                            <li>ESCALATED: đã vượt ngưỡng chờ duyệt và được nâng mức khẩn.</li>
+                            <li>APPROVED: đã chấp thuận hoặc xác nhận hợp lệ.</li>
+                            <li>REJECTED: bị từ chối theo rule cho phép.</li>
+                            <li>CANCELLED: yêu cầu bị hủy/hoàn tác.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-slate-900 mb-2">4.4. Change type chuẩn</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <p>REPLACE_DRIVER: thay tài xế chính</p>
+                        <p>REPLACE_CO_DRIVER: thay tài xế phụ</p>
+                        <p>REPLACE_ATTENDANT: thay nhân viên phục vụ</p>
+                        <p>REPLACE_BUS: thay xe</p>
+                        <p>INCIDENT_SWAP: đổi tài nguyên do sự cố dọc đường</p>
+                    </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-slate-900 mb-2">4.5. Cấu hình vận hành đang áp dụng</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                        <li>Urgent window: 60 phút.</li>
+                        <li>Escalation timeout: 10 phút.</li>
+                        <li>Handover gap: 15 phút.</li>
+                        <li>Rollback window: 30 phút trước giờ chạy.</li>
+                    </ul>
+                </div>
+
+                <div className="border border-slate-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-slate-900 mb-2">4.6. Nghiệp vụ đã hoàn thiện theo code</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                        <li>Backend đã chặn reject sai vùng (đặc biệt DEPARTED/MID_ROUTE).</li>
+                        <li>Frontend đã guard UX: vùng auto-execute không cho reject trực tiếp.</li>
+                        <li>Màn hình Trip Changes hỗ trợ đầy đủ review, rollback, tạo incident MID_ROUTE.</li>
+                        <li>Luồng đổi xe đã đồng bộ với BusAssignment và VehicleHandover để đảm bảo nhất quán vận hành.</li>
+                    </ul>
+                </div>
+
+                <div className="bg-rose-50 border border-rose-100 rounded-lg p-4 text-sm text-rose-900">
+                    <p className="font-semibold mb-1">Lưu ý vận hành quan trọng</p>
+                    <p>
+                        Khi xử lý sự cố cận giờ hoặc giữa hành trình, ưu tiên dùng luồng Emergency Flow thay vì thao tác thủ công rời rạc.
+                        Điều này giúp hệ thống giữ được lịch sử audit, tính nhất quán phân công và kiểm soát rủi ro pháp lý.
+                    </p>
+                </div>
+            </div>
+        )
+    },
+    {
         id: "planning",
-        title: "4. Module Kế hoạch (Planning)",
+        title: "5. Module Kế hoạch (Planning)",
         icon: Map,
         color: "text-purple-500",
         bgColor: "bg-purple-50",
@@ -132,7 +221,7 @@ const SUPPORT_TOPICS = [
     },
     {
         id: "fleet",
-        title: "5. Module Đội xe (Fleet)",
+        title: "6. Module Đội xe (Fleet)",
         icon: Bus,
         color: "text-amber-500",
         bgColor: "bg-amber-50",
@@ -166,7 +255,7 @@ const SUPPORT_TOPICS = [
     },
     {
         id: "security",
-        title: "6. Bảo mật & Phân quyền (Security & Roles)",
+        title: "7. Bảo mật & Phân quyền (Security & Roles)",
         icon: ShieldAlert,
         color: "text-red-500",
         bgColor: "bg-red-50",

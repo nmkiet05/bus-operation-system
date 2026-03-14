@@ -461,3 +461,26 @@ Xác nhận các thay đổi chính đã hoạt động ổn định theo môi t
 2. Tồn đọng còn lại (không blocker cho phạm vi đợt này):
 - Một số warning lint cũ ở module `bus-schedule`
 - Các mock/placeholder phụ trợ ngoài phạm vi ưu tiên vận hành chính
+
+---
+
+## Phần 09 — Bổ sung tài liệu Support Admin cho Emergency Flow 5 Vùng
+
+### Mục tiêu
+Đồng bộ trang tài liệu nội bộ trong Admin với code và báo cáo refactor đã triển khai, để đội vận hành có tài liệu chuẩn tại chỗ.
+
+### Thay đổi
+1. Cập nhật trang support admin:
+- File: `frontend/src/app/(admin)/admin/support/page.tsx`
+- Bổ sung mục mới: `Emergency Flow 5 Vùng (Trip Change)` với các nội dung:
+  - định nghĩa 5 vùng
+  - rule thao tác reject/review theo vùng
+  - status canonical
+  - change type canonical
+  - ngưỡng cấu hình vận hành đang áp dụng
+  - nghiệp vụ đã hoàn thiện theo code (BE + FE + assignment/handover consistency)
+
+2. Đồng bộ lại mô tả trạng thái Trip ở phần Operation để khớp với code hiện tại.
+
+### Kiểm tra
+- Diagnostics file support page: **No errors found**.
