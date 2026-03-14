@@ -421,3 +421,43 @@ Giảm phụ thuộc mock trong luồng đặt vé bằng cách chuẩn hóa API
 
 ### Ghi chú thiết kế
 - Lát này chuẩn hóa contract và naming theo nghiệp vụ, không thay đổi sâu payment strategy hiện tại.
+
+---
+
+## Phần 08 — Kiểm thử hồi quy & Chốt đợt refactor
+
+### Mục tiêu
+Xác nhận các thay đổi chính đã hoạt động ổn định theo môi trường chạy thực tế của dự án (Docker Compose).
+
+### Kết quả xác nhận Backend
+1. Build/compile local:
+- `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+
+2. Xác nhận theo môi trường Docker (theo quy trình vận hành thực tế):
+- Chạy `docker compose up -d --build backend`
+- Container `bos_backend` đã được recreate và trạng thái `Up`.
+- Probe endpoint mới `GET /api/operation/dashboard/stats` trả về `401` (đúng kỳ vọng khi chưa có token), xác nhận API đã được expose và backend hoạt động trong container.
+
+### Kết quả xác nhận Frontend
+1. Lint sau khi chuẩn hóa ignore generated/artifact files:
+- `npm run lint` không còn lỗi (errors) trên mã ứng dụng chính.
+- Còn **warnings** hiện hữu tại `src/app/(admin)/admin/operation/bus-schedule/page.tsx` (không phát sinh từ đợt refactor này).
+
+### Điều chỉnh cấu hình phục vụ kiểm thử ổn định
+1. Cập nhật ESLint ignore:
+- File: `frontend/eslint.config.mjs`
+- Bỏ quét các thư mục/file generated hoặc utility ngoài phạm vi source app:
+  - `.next/**`, `out/**`, `build/**`, `dist/**`
+  - `next-env.d.ts`, `api-test.js`, `api-test.ts`, `api-test2.js`, `fix.js`
+
+### Trạng thái chốt đợt
+1. Các hạng mục trọng tâm đợt này đã hoàn tất:
+- Chặn reject sai vùng end-to-end (BE + FE guard)
+- Đồng bộ schema/config cho Emergency Flow 5 vùng
+- Hoàn thiện flow FE: review/rollback/incident
+- Rà consistency Operation Assignment + VehicleHandover
+- Dọn mock chính (master data, dashboard stats, payment flow naming)
+
+2. Tồn đọng còn lại (không blocker cho phạm vi đợt này):
+- Một số warning lint cũ ở module `bus-schedule`
+- Các mock/placeholder phụ trợ ngoài phạm vi ưu tiên vận hành chính
