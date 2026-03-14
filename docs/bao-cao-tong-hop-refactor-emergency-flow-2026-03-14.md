@@ -253,3 +253,27 @@ Giảm nhập tay ID gây lỗi thao tác bằng cách chuyển dialog incident 
 ### Ghi chú thiết kế
 - Lát này chỉ xử lý consistency vòng đời ca xe khi đổi bus/rollback bus.
 - Chưa thay đổi nhánh xử lý crew ngoài phạm vi cần thiết để tránh mở rộng rủi ro trong cùng phân đoạn.
+
+---
+
+## Phần 06 — Rà soát liên đới Operation Assignment (lát 2: consistency đổi crew theo role)
+
+### Mục tiêu
+Tránh thay nhầm `DriverAssignment` khi xử lý đổi crew trong trường hợp có nhiều assignment ACTIVE, đảm bảo thao tác đúng theo `CrewRole` của `TripChangeType`.
+
+### Thay đổi
+1. Cập nhật lọc assignment ở nhánh execute:
+- File: `backend/src/main/java/com/bus/system/modules/operation/service/impl/TripChangeExecutor.java`
+- Khi tìm assignment cũ để replace:
+  - Bổ sung filter theo `da.getRole() == targetRole`
+  - Sau đó mới filter theo `oldDriver` (nếu có)
+
+2. Cập nhật lọc assignment ở nhánh rollback:
+- Khi tìm assignment ACTIVE của `newDriver` để cancel:
+  - Bổ sung filter theo `da.getRole() == targetRole`
+
+### Kiểm tra
+- Compile backend: `mvnw.cmd -DskipTests compile` => **BUILD SUCCESS**.
+
+### Ghi chú thiết kế
+- Lát này chỉ chỉnh logic chọn bản ghi assignment cho chính xác nghiệp vụ, không thay đổi API contract.
