@@ -5,8 +5,13 @@ export function middleware(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
     const { pathname } = request.nextUrl;
 
-    // 1. Protected Routes (Dashboard + Admin)
-    if (pathname.startsWith("/dashboard") || pathname.startsWith("/profile") || pathname.startsWith("/admin")) {
+    // 1. Protected Routes (Dashboard + Admin + Driver Portal)
+    if (
+        pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/profile") ||
+        pathname.startsWith("/admin") ||
+        pathname.startsWith("/driver")
+    ) {
         if (!token) {
             const loginUrl = new URL("/login", request.url);
             loginUrl.searchParams.set("returnUrl", pathname);
@@ -25,5 +30,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/dashboard/:path*", "/profile/:path*", "/admin/:path*", "/login", "/register"],
+    matcher: ["/dashboard/:path*", "/profile/:path*", "/admin/:path*", "/driver/:path*", "/login", "/register"],
 };

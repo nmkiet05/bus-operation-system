@@ -366,7 +366,7 @@ export interface TripChangeResponse {
 // =====================================================================
 
 export type CrewRole = "MAIN_DRIVER" | "CO_DRIVER" | "ATTENDANT";
-export type DriverAssignmentStatus = "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+export type DriverAssignmentStatus = "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "ENDED_EARLY";
 
 /** Khớp backend CrewMemberResponse DTO */
 export interface CrewMember {
