@@ -10,7 +10,7 @@ import { vi } from "date-fns/locale";
 import {
     ChevronLeft, ChevronRight, MapPin, Bus, Loader2,
     Users, UserCircle2, Phone, Armchair, ChevronDown, ChevronUp,
-    CalendarDays, Info,
+    CalendarDays,
 } from "lucide-react";
 import { driverService, DriverTrip, CrewMember, PassengerInfo } from "@/features/driver/services/driver-service";
 import { cn } from "@/lib/utils";
@@ -78,22 +78,32 @@ function TripCard({ trip }: { trip: DriverTrip }) {
                     </span>
                 </div>
 
-                {/* Giờ */}
-                <div className="flex items-center gap-2 text-sm">
-                    <span className="text-blue-400 font-bold text-base tabular-nums">{trip.departureTime}</span>
-                    <div className="flex-1 flex items-center gap-1">
-                        <div className="flex-1 h-px bg-slate-700" />
-                        <span className="text-[10px] text-slate-500">
-                            {trip.departureStationName && trip.arrivalStationName
-                                ? `${trip.departureStationName} → ${trip.arrivalStationName}`
-                                : ""}
-                        </span>
-                        <div className="flex-1 h-px bg-slate-700" />
-                    </div>
-                    <span className="text-slate-400 text-xs tabular-nums">
-                        {trip.arrivalTime ? String(trip.arrivalTime).slice(0, 5) : "--:--"}
+                {/* Giờ khởi hành → kết thúc */}
+                <div className="flex items-center gap-2">
+                    <span className="text-blue-400 font-bold text-lg tabular-nums leading-none">
+                        {/* departureTime = LocalTime "HH:mm:ss" → chỉ lấy HH:mm */}
+                        {trip.departureTime ? String(trip.departureTime).slice(0, 5) : "--:--"}
+                    </span>
+                    <div className="flex-1 h-px bg-slate-700" />
+                    <span className="text-slate-400 text-sm tabular-nums leading-none">
+                        {/* arrivalTime = LocalDateTime "2026-03-16T05:00:37" → lấy HH:mm */}
+                        {trip.arrivalTime
+                            ? String(trip.arrivalTime).includes("T")
+                                ? String(trip.arrivalTime).slice(11, 16)
+                                : String(trip.arrivalTime).slice(0, 5)
+                            : "--:--"}
                     </span>
                 </div>
+
+                {/* Bến đi → bến đến (nếu có) */}
+                {(trip.departureStationName || trip.arrivalStationName) && (
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                            {[trip.departureStationName, trip.arrivalStationName].filter(Boolean).join(" → ")}
+                        </span>
+                    </div>
+                )}
 
                 {/* Xe + ghế */}
                 <div className="flex items-center gap-3 text-[12px] text-slate-400">
@@ -354,17 +364,6 @@ export default function DriverSchedulePage() {
                         <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Hoàn thành</span>
                     </div>
 
-                    {/* Ghi chú role chuyển trạng thái */}
-                    <div className="mx-3 mb-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                        <div className="flex items-start gap-2">
-                            <Info className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-                            <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                                Việc chuyển trạng thái chuyến (Duyệt → Khởi hành) do{" "}
-                                <span className="font-semibold text-amber-300">ADMIN/STAFF</span>{" "}
-                                tại trung tâm điều hành thực hiện.
-                            </p>
-                        </div>
-                    </div>
                 </div>
 
                 {/* ── CỘT PHẢI: Trip list cho ngày được chọn ───────────── */}
