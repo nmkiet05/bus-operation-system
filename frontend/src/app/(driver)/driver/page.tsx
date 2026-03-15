@@ -2,41 +2,243 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval,
-         isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO } from "date-fns";
+import {
+    format, startOfMonth, endOfMonth, eachDayOfInterval,
+    isSameMonth, isSameDay, isToday, addMonths, subMonths,
+} from "date-fns";
 import { vi } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Bus, AlertCircle, Loader2, Calendar } from "lucide-react";
-import { driverService, DriverTrip } from "@/features/driver/services/driver-service";
+import {
+    ChevronLeft, ChevronRight, MapPin, Bus, Loader2,
+    Users, UserCircle2, Phone, Armchair, ChevronDown, ChevronUp,
+    CalendarDays, Info,
+} from "lucide-react";
+import { driverService, DriverTrip, CrewMember, PassengerInfo } from "@/features/driver/services/driver-service";
 import { cn } from "@/lib/utils";
 
-// ────────────────────────────────────────────────────────────
-// Status config
-// ────────────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-    SCHEDULED: { label: "Chờ xuất bến", dot: "bg-amber-400",  badge: "bg-amber-400/10 text-amber-300 border-amber-400/20" },
-    APPROVED:  { label: "Đã duyệt",     dot: "bg-blue-400",   badge: "bg-blue-400/10  text-blue-300  border-blue-400/20"  },
-    RUNNING:   { label: "Đang chạy",    dot: "bg-emerald-400",badge: "bg-emerald-400/10 text-emerald-300 border-emerald-400/20" },
-    COMPLETED: { label: "Hoàn thành",   dot: "bg-slate-500",  badge: "bg-slate-500/10 text-slate-400  border-slate-500/20" },
-    CANCELLED: { label: "Đã hủy",       dot: "bg-red-400",    badge: "bg-red-400/10   text-red-400    border-red-400/20"   },
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const STATUS_CFG: Record<string, { label: string; dot: string; badge: string }> = {
+    SCHEDULED: { label: "Chờ duyệt",   dot: "bg-amber-400",   badge: "text-amber-300  border-amber-400/30  bg-amber-400/10"  },
+    APPROVED:  { label: "Đã duyệt",    dot: "bg-blue-400",    badge: "text-blue-300   border-blue-400/30   bg-blue-400/10"   },
+    RUNNING:   { label: "Đang chạy",   dot: "bg-emerald-400", badge: "text-emerald-300 border-emerald-400/30 bg-emerald-400/10" },
+    COMPLETED: { label: "Hoàn thành",  dot: "bg-slate-500",   badge: "text-slate-400  border-slate-500/30  bg-slate-500/10"  },
+    CANCELLED: { label: "Đã hủy",      dot: "bg-red-400",     badge: "text-red-400    border-red-400/30    bg-red-400/10"    },
+};
+
+const ROLE_LABEL: Record<string, string> = {
+    MAIN_DRIVER: "Tài xế chính",
+    CO_DRIVER:   "Phụ lái",
+    ATTENDANT:   "Tiếp viên",
 };
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
+// ─── TripCard ─────────────────────────────────────────────────────────────────
+
+function TripCard({ trip }: { trip: DriverTrip }) {
+    const [tab, setTab] = useState<"crew" | "passengers" | null>(null);
+
+    const { data: crew = [], isLoading: crewLoading } = useQuery({
+        queryKey: ["driver-crew", trip.id],
+        queryFn: () => driverService.getTripCrew(trip.id),
+        enabled: tab === "crew",
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const { data: passengers = [], isLoading: passengerLoading } = useQuery({
+        queryKey: ["driver-passengers", trip.id],
+        queryFn: () => driverService.getTripPassengers(trip.id),
+        enabled: tab === "passengers",
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const cfg = STATUS_CFG[trip.status] ?? STATUS_CFG.SCHEDULED;
+    const bookedSeats = (trip.totalSeats ?? 0) - (trip.availableSeats ?? 0);
+
+    const toggle = (t: "crew" | "passengers") =>
+        setTab(prev => prev === t ? null : t);
+
+    return (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            {/* ── Header ────────────────────────────────────────────────── */}
+            <div className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                        <p className="font-semibold text-white text-sm truncate">{trip.routeName}</p>
+                        {trip.routeCode && (
+                            <p className="text-[11px] text-slate-500 font-mono">{trip.routeCode}</p>
+                        )}
+                    </div>
+                    <span className={cn(
+                        "shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border",
+                        cfg.badge
+                    )}>
+                        <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", cfg.dot)} />
+                        {cfg.label}
+                    </span>
+                </div>
+
+                {/* Giờ */}
+                <div className="flex items-center gap-2 text-sm">
+                    <span className="text-blue-400 font-bold text-base tabular-nums">{trip.departureTime}</span>
+                    <div className="flex-1 flex items-center gap-1">
+                        <div className="flex-1 h-px bg-slate-700" />
+                        <span className="text-[10px] text-slate-500">
+                            {trip.departureStationName && trip.arrivalStationName
+                                ? `${trip.departureStationName} → ${trip.arrivalStationName}`
+                                : ""}
+                        </span>
+                        <div className="flex-1 h-px bg-slate-700" />
+                    </div>
+                    <span className="text-slate-400 text-xs tabular-nums">
+                        {trip.arrivalTime ? String(trip.arrivalTime).slice(0, 5) : "--:--"}
+                    </span>
+                </div>
+
+                {/* Xe + ghế */}
+                <div className="flex items-center gap-3 text-[12px] text-slate-400">
+                    {trip.busLicensePlate && (
+                        <span className="flex items-center gap-1">
+                            <Bus className="h-3.5 w-3.5 text-slate-500" />
+                            <span className="font-mono font-medium text-slate-300">{trip.busLicensePlate}</span>
+                            {trip.busTypeName && <span className="text-slate-500">· {trip.busTypeName}</span>}
+                        </span>
+                    )}
+                    {trip.totalSeats && (
+                        <span className="flex items-center gap-1 ml-auto">
+                            <Armchair className="h-3.5 w-3.5 text-slate-500" />
+                            <span className="font-medium text-white">{bookedSeats}</span>
+                            <span>/ {trip.totalSeats} khách</span>
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Tab buttons ───────────────────────────────────────────── */}
+            <div className="border-t border-slate-800 flex">
+                <button
+                    onClick={() => toggle("crew")}
+                    className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors",
+                        tab === "crew"
+                            ? "bg-slate-800 text-white"
+                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                    )}
+                >
+                    <Users className="h-3.5 w-3.5" />
+                    Đội ngũ
+                    {tab === "crew" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
+                <div className="w-px bg-slate-800" />
+                <button
+                    onClick={() => toggle("passengers")}
+                    className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors",
+                        tab === "passengers"
+                            ? "bg-slate-800 text-white"
+                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/50"
+                    )}
+                >
+                    <UserCircle2 className="h-3.5 w-3.5" />
+                    Hành khách ({bookedSeats})
+                    {tab === "passengers" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </button>
+            </div>
+
+            {/* ── Panel Crew ────────────────────────────────────────────── */}
+            {tab === "crew" && (
+                <div className="border-t border-slate-800 bg-slate-950/50">
+                    {crewLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-4 text-slate-500 text-xs">
+                            <Loader2 className="h-4 w-4 animate-spin" /> Đang tải...
+                        </div>
+                    ) : crew.length === 0 ? (
+                        <p className="text-center text-slate-500 text-xs py-4">Chưa có nhân sự phân công</p>
+                    ) : (
+                        <div className="divide-y divide-slate-800/50">
+                            {crew.map((m: CrewMember) => (
+                                <div key={m.assignmentId} className="flex items-center gap-3 px-4 py-2.5">
+                                    <div className="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-[11px] shrink-0">
+                                        {m.fullName?.charAt(0) ?? "?"}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white truncate">{m.fullName}</p>
+                                        <p className="text-[11px] text-slate-500">{ROLE_LABEL[m.role] ?? m.role}</p>
+                                    </div>
+                                    {m.phone && (
+                                        <a href={`tel:${m.phone}`}
+                                            className="flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300">
+                                            <Phone className="h-3 w-3" />
+                                            {m.phone}
+                                        </a>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── Panel Passengers ──────────────────────────────────────── */}
+            {tab === "passengers" && (
+                <div className="border-t border-slate-800 bg-slate-950/50">
+                    {passengerLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-4 text-slate-500 text-xs">
+                            <Loader2 className="h-4 w-4 animate-spin" /> Đang tải...
+                        </div>
+                    ) : passengers.length === 0 ? (
+                        <p className="text-center text-slate-500 text-xs py-4">Chưa có hành khách đặt vé</p>
+                    ) : (
+                        <div className="divide-y divide-slate-800/50 max-h-56 overflow-y-auto">
+                            {passengers.map((p: PassengerInfo) => (
+                                <div key={p.ticketId} className="flex items-start gap-3 px-4 py-2.5">
+                                    <span className="shrink-0 font-mono text-[11px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded mt-0.5">
+                                        {p.seatNumber}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white truncate">
+                                            {p.passengerName ?? <span className="text-slate-500 italic">Chưa điền tên</span>}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                                            {p.passengerPhone && <span>{p.passengerPhone}</span>}
+                                            {p.pickupPoint && (
+                                                <span className="flex items-center gap-0.5">
+                                                    <MapPin className="h-3 w-3" />{p.pickupPoint}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {p.isCheckedIn && (
+                                        <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
+                                            Check-in
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function DriverSchedulePage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-    // Fetch toàn tháng
     const fromDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
     const toDate   = format(endOfMonth(currentMonth),   "yyyy-MM-dd");
 
-    const { data: trips = [], isLoading, isError } = useQuery({
+    const { data: trips = [], isLoading } = useQuery({
         queryKey: ["driver-schedule", fromDate, toDate],
         queryFn: () => driverService.getMySchedule(fromDate, toDate),
         staleTime: 5 * 60 * 1000,
     });
 
-    // Map ngày → danh sách chuyến
+    // tripsByDate map
     const tripsByDate = useMemo(() => {
         const map = new Map<string, DriverTrip[]>();
         for (const trip of trips) {
@@ -47,219 +249,150 @@ export default function DriverSchedulePage() {
         return map;
     }, [trips]);
 
-    // Ngày được chọn
-    const selectedDateStr = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
-    const selectedTrips   = selectedDateStr ? (tripsByDate.get(selectedDateStr) ?? []) : [];
+    const selectedKey   = format(selectedDate, "yyyy-MM-dd");
+    const selectedTrips = tripsByDate.get(selectedKey) ?? [];
 
-    // Tháng: grid
     const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) });
-    const firstDayIndex = (startOfMonth(currentMonth).getDay() + 6) % 7; // Mon=0
-
-    const totalTrips    = trips.length;
-    const completedTrips = trips.filter(t => t.status === "COMPLETED").length;
-    const upcomingTrips  = trips.filter(t => ["SCHEDULED","APPROVED"].includes(t.status)).length;
+    const firstDayIndex = (startOfMonth(currentMonth).getDay() + 6) % 7;
 
     return (
-        <div className="space-y-6">
-            {/* ─── Tiêu đề ─── */}
+        <div className="space-y-5">
+            {/* Tiêu đề */}
             <div>
-                <h1 className="text-xl font-bold text-white">Lịch chuyến của tôi</h1>
-                <p className="text-sm text-slate-400 mt-0.5">Xem các chuyến được phân công trong tháng</p>
+                <h1 className="text-lg font-bold text-white">Lịch chuyến của tôi</h1>
+                <p className="text-xs text-slate-500 mt-0.5">Xem lịch và thông tin chuyến được phân công</p>
             </div>
 
-            {/* ─── Stats nhỏ ─── */}
-            <div className="grid grid-cols-3 gap-3">
-                {[
-                    { label: "Chuyến tháng này", value: totalTrips,     color: "text-white" },
-                    { label: "Sắp tới",          value: upcomingTrips,  color: "text-blue-400" },
-                    { label: "Hoàn thành",        value: completedTrips, color: "text-emerald-400" },
-                ].map(s => (
-                    <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                        <div className={cn("text-2xl font-bold tabular-nums", s.color)}>{s.value}</div>
-                        <div className="text-[11px] text-slate-500 mt-1">{s.label}</div>
-                    </div>
-                ))}
-            </div>
+            {/* ── Layout 2 cột ─────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-4 items-start">
 
-            {/* ─── Calendar card ─── */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                {/* Header điều hướng tháng */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-                    <button
-                        onClick={() => setCurrentMonth(m => subMonths(m, 1))}
-                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-blue-400" />
-                        <span className="font-semibold text-white capitalize">
-                            {format(currentMonth, "MMMM yyyy", { locale: vi })}
-                        </span>
-                    </div>
-                    <button
-                        onClick={() => setCurrentMonth(m => addMonths(m, 1))}
-                        className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                    >
-                        <ChevronRight className="h-4 w-4" />
-                    </button>
-                </div>
-
-                {/* Grid weekday headers */}
-                <div className="grid grid-cols-7 border-b border-slate-800">
-                    {WEEKDAYS.map(d => (
-                        <div key={d} className="py-2 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                            {d}
+                {/* ── CỘT TRÁI: Compact Calendar ───────────────────────── */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden sticky top-20">
+                    {/* Nav tháng */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                        <button onClick={() => setCurrentMonth(m => subMonths(m, 1))}
+                            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+                            <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                            <CalendarDays className="h-3.5 w-3.5 text-blue-400" />
+                            <span className="text-sm font-semibold text-white capitalize">
+                                {format(currentMonth, "MMMM yyyy", { locale: vi })}
+                            </span>
                         </div>
-                    ))}
-                </div>
-
-                {/* Grid days */}
-                {isLoading ? (
-                    <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <span className="text-sm">Đang tải lịch...</span>
+                        <button onClick={() => setCurrentMonth(m => addMonths(m, 1))}
+                            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+                            <ChevronRight className="h-4 w-4" />
+                        </button>
                     </div>
-                ) : (
-                    <div className="grid grid-cols-7">
-                        {/* Padding trống đầu tháng */}
-                        {Array.from({ length: firstDayIndex }).map((_, i) => (
-                            <div key={`pad-${i}`} className="aspect-square border-b border-r border-slate-800/50" />
+
+                    {/* Weekday headers */}
+                    <div className="grid grid-cols-7 border-b border-slate-800/50">
+                        {WEEKDAYS.map(d => (
+                            <div key={d} className="py-1.5 text-center text-[10px] font-semibold text-slate-600 uppercase">
+                                {d}
+                            </div>
                         ))}
-
-                        {days.map((day) => {
-                            const key        = format(day, "yyyy-MM-dd");
-                            const dayTrips   = tripsByDate.get(key) ?? [];
-                            const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
-                            const isCurrentDay = isToday(day);
-                            const inMonth    = isSameMonth(day, currentMonth);
-                            const hasActive  = dayTrips.some(t => ["RUNNING","APPROVED","SCHEDULED"].includes(t.status));
-                            const hasDone    = dayTrips.some(t => t.status === "COMPLETED");
-
-                            return (
-                                <button
-                                    key={key}
-                                    onClick={() => setSelectedDate(day)}
-                                    className={cn(
-                                        "aspect-square border-b border-r border-slate-800/50 flex flex-col items-center justify-start pt-2 px-1 gap-1 transition-colors relative",
-                                        inMonth ? "" : "opacity-30",
-                                        isSelected
-                                            ? "bg-blue-500/15 border-blue-500/30"
-                                            : "hover:bg-slate-800/60"
-                                    )}
-                                >
-                                    {/* Số ngày */}
-                                    <span className={cn(
-                                        "w-6 h-6 flex items-center justify-center rounded-full text-[12px] font-medium",
-                                        isCurrentDay
-                                            ? "bg-blue-500 text-white font-bold"
-                                            : isSelected
-                                                ? "text-blue-300"
-                                                : "text-slate-300"
-                                    )}>
-                                        {format(day, "d")}
-                                    </span>
-
-                                    {/* Dot chỉ trạng thái */}
-                                    {dayTrips.length > 0 && (
-                                        <div className="flex gap-0.5 flex-wrap justify-center">
-                                            {hasActive && <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
-                                            {hasDone   && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-                                        </div>
-                                    )}
-                                </button>
-                            );
-                        })}
                     </div>
-                )}
-            </div>
 
-            {/* ─── Panel chuyến của ngày được chọn ─── */}
-            {selectedDate && (
-                <div>
-                    <h2 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">
-                        {format(selectedDate, "EEEE, dd/MM/yyyy", { locale: vi })}
-                    </h2>
-
-                    {isError ? (
-                        <div className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-                            <AlertCircle className="h-4 w-4 shrink-0" />
-                            Không thể tải dữ liệu. Vui lòng thử lại.
-                        </div>
-                    ) : selectedTrips.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 bg-slate-900 border border-slate-800 rounded-2xl text-slate-500">
-                            <Bus className="h-8 w-8 mb-2 opacity-30" />
-                            <p className="text-sm">Không có chuyến nào ngày này</p>
+                    {/* Days grid */}
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-10 text-slate-500 gap-2 text-xs">
+                            <Loader2 className="h-4 w-4 animate-spin" /> Đang tải...
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            {selectedTrips.map(trip => {
-                                const cfg = STATUS_CONFIG[trip.status] ?? STATUS_CONFIG.SCHEDULED;
+                        <div className="grid grid-cols-7">
+                            {Array.from({ length: firstDayIndex }).map((_, i) => (
+                                <div key={`pad-${i}`} className="aspect-square" />
+                            ))}
+                            {days.map(day => {
+                                const key      = format(day, "yyyy-MM-dd");
+                                const dayTrips = tripsByDate.get(key) ?? [];
+                                const isSelected  = isSameDay(day, selectedDate);
+                                const isCurrent   = isToday(day);
+                                const inMonth     = isSameMonth(day, currentMonth);
+                                const hasActive   = dayTrips.some(t => ["RUNNING","APPROVED","SCHEDULED"].includes(t.status));
+                                const hasDone     = dayTrips.some(t => t.status === "COMPLETED");
+
                                 return (
-                                    <div
-                                        key={trip.id}
-                                        className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3"
+                                    <button
+                                        key={key}
+                                        onClick={() => setSelectedDate(day)}
+                                        className={cn(
+                                            "aspect-square flex flex-col items-center justify-center gap-0.5 rounded-lg mx-0.5 my-0.5 transition-all",
+                                            !inMonth && "opacity-25",
+                                            isSelected
+                                                ? "bg-blue-500/20 ring-1 ring-blue-500/50"
+                                                : "hover:bg-slate-800"
+                                        )}
                                     >
-                                        {/* Row 1: Tuyến + Badge */}
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div>
-                                                <p className="font-semibold text-white text-sm">{trip.routeName}</p>
-                                                {trip.routeCode && (
-                                                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">{trip.routeCode}</p>
-                                                )}
-                                            </div>
-                                            <span className={cn(
-                                                "shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border",
-                                                cfg.badge
-                                            )}>
-                                                <span className={cn("w-1.5 h-1.5 rounded-full", cfg.dot)} />
-                                                {cfg.label}
-                                            </span>
-                                        </div>
-
-                                        {/* Row 2: Giờ + Điểm đi/đến */}
-                                        <div className="flex items-center gap-4 text-sm">
-                                            {/* Departure time */}
-                                            <div className="flex items-center gap-1.5 text-blue-400 font-bold tabular-nums text-lg">
-                                                <Clock className="h-4 w-4" />
-                                                {trip.departureTime}
-                                            </div>
-                                            <div className="h-px flex-1 bg-slate-700" />
-                                            <div className="text-slate-400 text-sm tabular-nums">
-                                                {trip.arrivalTime}
-                                            </div>
-                                        </div>
-
-                                        {/* Row 3: Điểm xuất phát → đến */}
-                                        {(trip.originProvinceName || trip.destinationProvinceName) && (
-                                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                                                <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-                                                <span className="truncate">
-                                                    {trip.originProvinceName}
-                                                    {trip.destinationProvinceName && ` → ${trip.destinationProvinceName}`}
-                                                </span>
+                                        <span className={cn(
+                                            "w-6 h-6 flex items-center justify-center rounded-full text-[12px] font-medium",
+                                            isCurrent
+                                                ? "bg-blue-500 text-white font-bold"
+                                                : isSelected
+                                                    ? "text-blue-300"
+                                                    : "text-slate-300"
+                                        )}>
+                                            {format(day, "d")}
+                                        </span>
+                                        {dayTrips.length > 0 && (
+                                            <div className="flex gap-0.5">
+                                                {hasActive && <span className="w-1 h-1 rounded-full bg-blue-400" />}
+                                                {hasDone   && <span className="w-1 h-1 rounded-full bg-emerald-400" />}
                                             </div>
                                         )}
-
-                                        {/* Row 4: Biển số xe */}
-                                        {trip.busLicensePlate && (
-                                            <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
-                                                <Bus className="h-3.5 w-3.5 text-slate-500" />
-                                                <span className="font-mono text-xs font-medium text-slate-300">
-                                                    {trip.busLicensePlate}
-                                                </span>
-                                                {trip.busType && (
-                                                    <span className="text-[11px] text-slate-500">· {trip.busType}</span>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+                                    </button>
                                 );
                             })}
                         </div>
                     )}
+
+                    {/* Legend */}
+                    <div className="flex items-center gap-4 px-4 py-2.5 border-t border-slate-800/50 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" />Sắp tới</span>
+                        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Hoàn thành</span>
+                    </div>
+
+                    {/* Ghi chú role chuyển trạng thái */}
+                    <div className="mx-3 mb-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                        <div className="flex items-start gap-2">
+                            <Info className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                            <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                                Việc chuyển trạng thái chuyến (Duyệt → Khởi hành) do{" "}
+                                <span className="font-semibold text-amber-300">ADMIN/STAFF</span>{" "}
+                                tại trung tâm điều hành thực hiện.
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            )}
+
+                {/* ── CỘT PHẢI: Trip list cho ngày được chọn ───────────── */}
+                <div className="space-y-3">
+                    {/* Header ngày */}
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-slate-300 capitalize">
+                            {format(selectedDate, "EEEE, dd/MM/yyyy", { locale: vi })}
+                        </h2>
+                        {selectedTrips.length > 0 && (
+                            <span className="text-xs text-slate-500">
+                                {selectedTrips.length} chuyến
+                            </span>
+                        )}
+                    </div>
+
+                    {selectedTrips.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-slate-600">
+                            <Bus className="h-8 w-8 mb-2 opacity-30" />
+                            <p className="text-sm">Không có chuyến được phân công</p>
+                        </div>
+                    ) : (
+                        selectedTrips.map(trip => (
+                            <TripCard key={trip.id} trip={trip} />
+                        ))
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
