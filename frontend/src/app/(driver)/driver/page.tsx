@@ -60,67 +60,99 @@ function TripCard({ trip }: { trip: DriverTrip }) {
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            {/* ── Header ────────────────────────────────────────────────── */}
-            <div className="p-4 space-y-3">
+            {/* ── Header: Tuyến + Badge ─────────────────────────────── */}
+            <div className="px-4 pt-4 pb-3 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                         <p className="font-semibold text-white text-sm truncate">{trip.routeName}</p>
                         {trip.routeCode && (
-                            <p className="text-[11px] text-slate-500 font-mono">{trip.routeCode}</p>
+                            <p className="text-[11px] text-slate-500 font-mono mt-0.5">{trip.routeCode}</p>
                         )}
                     </div>
                     <span className={cn(
-                        "shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border",
+                        "shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border",
                         cfg.badge
                     )}>
-                        <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", cfg.dot)} />
+                        <span className={cn("w-1.5 h-1.5 rounded-full", cfg.dot)} />
                         {cfg.label}
                     </span>
                 </div>
 
-                {/* Giờ khởi hành → kết thúc */}
-                <div className="flex items-center gap-2">
-                    <span className="text-blue-400 font-bold text-lg tabular-nums leading-none">
-                        {/* departureTime = LocalTime "HH:mm:ss" → chỉ lấy HH:mm */}
-                        {trip.departureTime ? String(trip.departureTime).slice(0, 5) : "--:--"}
-                    </span>
-                    <div className="flex-1 h-px bg-slate-700" />
-                    <span className="text-slate-400 text-sm tabular-nums leading-none">
-                        {/* arrivalTime = LocalDateTime "2026-03-16T05:00:37" → lấy HH:mm */}
-                        {trip.arrivalTime
-                            ? String(trip.arrivalTime).includes("T")
-                                ? String(trip.arrivalTime).slice(11, 16)
-                                : String(trip.arrivalTime).slice(0, 5)
-                            : "--:--"}
-                    </span>
+                {/* ── Giờ đi / Giờ đến — cùng 1 style ────────────── */}
+                <div className="flex items-center gap-3">
+                    {/* Giờ khởi hành */}
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Khởi hành</span>
+                        <span className="text-blue-400 font-bold text-base tabular-nums leading-none">
+                            {trip.departureTime ? String(trip.departureTime).slice(0, 5) : "--:--"}
+                        </span>
+                    </div>
+
+                    {/* Đường kết nối */}
+                    <div className="flex-1 flex items-center gap-1.5">
+                        <div className="flex-1 h-px bg-slate-700" />
+                        <div className="w-1.5 h-1.5 rounded-full border border-slate-600 bg-slate-800" />
+                        <div className="flex-1 h-px bg-slate-700" />
+                    </div>
+
+                    {/* Giờ đến */}
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Dự kiến đến</span>
+                        <span className="text-slate-300 font-bold text-base tabular-nums leading-none">
+                            {trip.arrivalTime
+                                ? String(trip.arrivalTime).includes("T")
+                                    ? String(trip.arrivalTime).slice(11, 16)
+                                    : String(trip.arrivalTime).slice(0, 5)
+                                : "--:--"}
+                        </span>
+                    </div>
                 </div>
 
-                {/* Bến đi → bến đến (nếu có) */}
+                {/* ── Dòng 1: Bến đi (trái) ←→ Bến đến (phải) ────────── */}
                 {(trip.departureStationName || trip.arrivalStationName) && (
-                    <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="truncate">
-                            {[trip.departureStationName, trip.arrivalStationName].filter(Boolean).join(" → ")}
-                        </span>
+                    <div className="flex items-center justify-between gap-2">
+                        {/* Bến đi — căn trái */}
+                        {trip.departureStationName ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-[13px] font-medium text-slate-200">
+                                <MapPin className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                                {trip.departureStationName}
+                            </span>
+                        ) : <span />}
+
+                        {/* Dấu phân cách */}
+                        {trip.departureStationName && trip.arrivalStationName && (
+                            <span className="text-slate-600 text-xs">→</span>
+                        )}
+
+                        {/* Bến đến — căn phải */}
+                        {trip.arrivalStationName ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-[13px] font-medium text-slate-200">
+                                <MapPin className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                                {trip.arrivalStationName}
+                            </span>
+                        ) : <span />}
                     </div>
                 )}
 
-                {/* Xe + ghế */}
-                <div className="flex items-center gap-3 text-[12px] text-slate-400">
-                    {trip.busLicensePlate && (
-                        <span className="flex items-center gap-1">
-                            <Bus className="h-3.5 w-3.5 text-slate-500" />
-                            <span className="font-mono font-medium text-slate-300">{trip.busLicensePlate}</span>
-                            {trip.busTypeName && <span className="text-slate-500">· {trip.busTypeName}</span>}
-                        </span>
-                    )}
-                    {trip.totalSeats && (
-                        <span className="flex items-center gap-1 ml-auto">
-                            <Armchair className="h-3.5 w-3.5 text-slate-500" />
-                            <span className="font-medium text-white">{bookedSeats}</span>
-                            <span>/ {trip.totalSeats} khách</span>
-                        </span>
-                    )}
+                {/* ── Dòng 2: Grid 3 cột đều — Biển số | Loại xe | Khách ─ */}
+                <div className="grid grid-cols-3 gap-1.5">
+                    {/* Biển số xe */}
+                    <span className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-[11px] font-mono font-medium text-slate-300">
+                        <Bus className="h-3 w-3 text-slate-500 shrink-0" />
+                        {trip.busLicensePlate ?? "—"}
+                    </span>
+
+                    {/* Loại xe */}
+                    <span className="inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-[11px] text-slate-400 text-center">
+                        {trip.busTypeName || trip.busType || "—"}
+                    </span>
+
+                    {/* Số khách */}
+                    <span className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-[11px] text-slate-400">
+                        <Armchair className="h-3 w-3 shrink-0" />
+                        <span className="font-medium text-white">{bookedSeats}</span>
+                        <span>/ {trip.totalSeats ?? "?"}</span>
+                    </span>
                 </div>
             </div>
 
@@ -172,7 +204,14 @@ function TripCard({ trip }: { trip: DriverTrip }) {
                                         {m.fullName?.charAt(0) ?? "?"}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white truncate">{m.fullName}</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <p className="text-sm font-medium text-white truncate">{m.fullName}</p>
+                                            {m.employeeCode && (
+                                                <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 border border-slate-600">
+                                                    {m.employeeCode}
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="text-[11px] text-slate-500">{ROLE_LABEL[m.role] ?? m.role}</p>
                                     </div>
                                     {m.phone && (

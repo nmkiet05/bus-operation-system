@@ -24,6 +24,7 @@ export interface DriverTrip {
 export interface CrewMember {
     assignmentId: number;
     userId: number;
+    employeeCode: string | null; // Mã nhân viên công khai (VD: DRV-0007)
     fullName: string;
     phone: string | null;
     role: "MAIN_DRIVER" | "CO_DRIVER" | "ATTENDANT";

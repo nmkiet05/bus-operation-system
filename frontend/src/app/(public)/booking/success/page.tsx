@@ -112,9 +112,20 @@ function BookingSuccessContent() {
                             <CreditCard className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <h3 className="font-bold text-amber-900 mb-1">Chờ thanh toán</h3>
-                                <p className="text-sm text-amber-700 leading-relaxed">
-                                    Vui lòng thanh toán tại quầy hoặc qua các phương thức thanh toán được hướng dẫn bên dưới để hoàn tất đặt vé.
+                                <p className="text-sm text-amber-700 leading-relaxed mb-3">
+                                    {booking.paymentMethod === "BANK_TRANSFER"
+                                        ? "Phiên chuyển khoản đã hết hạn. Nhấn để thử lại thanh toán chuyển khoản."
+                                        : "Vui lòng thanh toán tại quầy. Hoặc thanh toán nhanh hơn qua chuyển khoản để giảm tải cho quầy."}
                                 </p>
+                                <button
+                                    onClick={() => router.push(`/payment/qr?code=${booking.code}&amount=${booking.totalAmount}`)}
+                                    className="inline-flex items-center gap-2 bg-brand-blue hover:opacity-90 text-white text-sm font-bold px-4 py-2 rounded-lg transition-all shadow-sm"
+                                >
+                                    <CreditCard className="h-4 w-4" />
+                                    {booking.paymentMethod === "BANK_TRANSFER"
+                                        ? "↻ Thanh toán lại"
+                                        : "Thanh toán nhanh qua chuyển khoản"}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -300,11 +311,14 @@ function BookingSuccessContent() {
                                                     {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(ticket.price))}
                                                 </p>
                                             </div>
-                                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${ticket.status === "CONFIRMED"
+                                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                                                ticket.status === "CONFIRMED"
                                                 ? "bg-emerald-100 text-emerald-700"
+                                                : ticket.status === "CANCELLED"
+                                                ? "bg-red-100 text-red-700"
                                                 : "bg-amber-100 text-amber-700"
                                                 }`}>
-                                                {ticket.status === "CONFIRMED" ? "Đã xác nhận" : "Chờ xử lý"}
+                                                {ticket.status === "CONFIRMED" ? "Đã xác nhận" : ticket.status === "CANCELLED" ? "Đã hủy" : "Chờ xử lý"}
                                             </span>
                                         </div>
                                     </div>

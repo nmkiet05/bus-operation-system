@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Info } from "lucide-react";
+import { useState } from "react";
 
 interface ConfirmDialogProps {
     open: boolean;
@@ -19,14 +20,14 @@ interface ConfirmDialogProps {
     cancelLabel?: string;
     variant?: "danger" | "warning" | "info";
     isLoading?: boolean;
-    onConfirm: () => void;
+    /** Hỗ trợ cả sync lẫn async. Dialog tự đóng sau khi resolve. */
+    onConfirm: () => void | Promise<void>;
 }
 
 /**
  * Reusable Confirm Dialog — thay thế toàn bộ window.confirm() trong dự án.
- * Usage:
- *   const [open, setOpen] = useState(false);
- *   <ConfirmDialog open={open} onOpenChange={setOpen} title="..." description="..." onConfirm={handleConfirm} />
+ * Tự động đóng sau khi onConfirm hoàn tất (resolve).
+ * Nếu onConfirm throw error thì dialog giữ nguyên mở.
  */
 export function ConfirmDialog({
     open,
@@ -36,9 +37,12 @@ export function ConfirmDialog({
     confirmLabel = "Xác nhận",
     cancelLabel = "Hủy",
     variant = "warning",
-    isLoading = false,
+    isLoading: externalLoading = false,
     onConfirm,
 }: ConfirmDialogProps) {
+    const [internalLoading, setInternalLoading] = useState(false);
+    const busy = externalLoading || internalLoading;
+
     const icon =
         variant === "danger" || variant === "warning" ? (
             <AlertTriangle
@@ -49,6 +53,19 @@ export function ConfirmDialog({
         );
 
     const btnVariant = variant === "danger" ? "destructive" : "default";
+
+    const handleConfirm = async () => {
+        try {
+            setInternalLoading(true);
+            await onConfirm();
+            // Tự đóng dialog sau khi thành công
+            onOpenChange(false);
+        } catch {
+            // Giữ dialog mở nếu lỗi — caller tự xử lý toast.error
+        } finally {
+            setInternalLoading(false);
+        }
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,11 +78,11 @@ export function ConfirmDialog({
                 </DialogHeader>
                 <p className="text-sm text-gray-600 py-1">{description}</p>
                 <DialogFooter className="mt-2">
-                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
                         {cancelLabel}
                     </Button>
-                    <Button variant={btnVariant} onClick={onConfirm} disabled={isLoading}>
-                        {isLoading ? (
+                    <Button variant={btnVariant} onClick={handleConfirm} disabled={busy}>
+                        {busy ? (
                             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-1 inline-block" />
                         ) : null}
                         {confirmLabel}

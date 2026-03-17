@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ContactInfo, PassengerInfo } from "@/features/booking/hooks/useBookingFlow";
-import { Mail, Phone, FileText, UserCircle } from "lucide-react";
+import { Mail, Phone, FileText, UserCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
+import { authService } from "@/features/auth/services/auth-service";
 
 interface ContactInfoSectionProps {
     user?: { id?: string | number; username?: string; fullName?: string; phone?: string; email?: string } | null;
@@ -43,36 +44,52 @@ export function ContactInfoSection({ user, passengers, contactInfo, onUpdate }: 
         email: "",
         phone: "",
     });
+    const [isFetchingProfile, setIsFetchingProfile] = useState(false);
 
     // Auto-sync data when mode changes
     useEffect(() => {
-        if (mode === "ACCOUNT" && user) {
-            onUpdate({
-                ...contactInfo,
-                // Fallback to username if fullName is missing (e.g., admin account) to provide Zero-Thinking UX
-                fullName: user.fullName || user.username || "",
-                phone: user.phone || "",
-                email: user.email || "",
-            });
-            setErrors({ fullName: "", email: "", phone: "" });
+        if (mode === "ACCOUNT") {
+            // Fetch fresh profile từ API thay vì dùng cache localStorage
+            setIsFetchingProfile(true);
+            authService.getProfile()
+                .then(profile => {
+                    onUpdate({
+                        ...contactInfo,
+                        fullName: profile.fullName || profile.username || user?.fullName || user?.username || "",
+                        phone: profile.phone || "",
+                        email: profile.email || user?.email || "",
+                    });
+                    setErrors({ fullName: "", email: "", phone: "" });
+                })
+                .catch(() => {
+                    // Fallback về data trong context nếu API lỗi
+                    if (user) {
+                        onUpdate({
+                            ...contactInfo,
+                            fullName: user.fullName || user.username || "",
+                            phone: user.phone || "",
+                            email: user.email || "",
+                        });
+                    }
+                })
+                .finally(() => setIsFetchingProfile(false));
         } else if (typeof mode === "number") {
             const p = passengers[mode];
             if (p) {
-                // For passengers, we don't have email. We sync what we have.
                 onUpdate({
                     ...contactInfo,
                     fullName: p.fullName || "",
                     phone: p.phone || "",
                     email: "",
                 });
-                setErrors({ fullName: "", email: "", phone: "" }); // Clean errors up to user to fix in passenger pane or ignore
+                setErrors({ fullName: "", email: "", phone: "" });
             }
         }
-        // If mode === "OTHER", we leave contactInfo as is so user can edit independently
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode, user, passengers]); // Intentionally omitting contactInfo from dep array to avoid infinite loops
+    }, [mode, user, passengers]);
 
     const isNameReadOnly = mode !== "OTHER";
+    // Phone: readonly khi đồng bộ từ tài khoản hoặc hành khách
     const isPhoneReadOnly = mode !== "OTHER";
     const isEmailReadOnly = mode === "ACCOUNT";
 
@@ -192,11 +209,13 @@ export function ContactInfoSection({ user, passengers, contactInfo, onUpdate }: 
                 </div>
             </div>
 
-            {/* Read-only Hint */}
-            {mode !== "OTHER" && (isNameReadOnly || isPhoneReadOnly || isEmailReadOnly) && (
+            {/* Read-only Hint / Fetching spinner */}
+            {mode !== "OTHER" && (
                 <div className="mb-4 text-xs font-medium text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100 flex items-center gap-2">
-                    <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    Đang đồng bộ tự động. Các thông tin còn thiếu có thể nhập bổ sung.
+                    {isFetchingProfile
+                        ? <><Loader2 className="h-3 w-3 animate-spin" /> Đang tải thông tin tài khoản...</>
+                        : <><span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500" /> Đang đồng bộ tự động. Các thông tin còn thiếu có thể nhập bổ sung.</>
+                    }
                 </div>
             )}
 

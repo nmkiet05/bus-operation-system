@@ -32,4 +32,10 @@ export const authService = {
         if (userStr) return JSON.parse(userStr);
         return null;
     },
+
+    // Lấy profile đầy đủ từ API (bao gồm phone, fullName mới nhất)
+    getProfile: async (): Promise<AuthResponse> => {
+        const response = await axiosClient.get<{ result: AuthResponse }>("/auth/me");
+        return response.data.result;
+    },
 };

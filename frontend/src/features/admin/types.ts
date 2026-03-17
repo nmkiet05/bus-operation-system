@@ -98,6 +98,7 @@ export interface BusTypeNested {
  */
 export interface Driver {
     id: number;
+    employeeCode: string | null; // Mã nhân viên công khai (VD: DRV-0007)
     fullName: string;
     phone: string;
     status: "ACTIVE" | "INACTIVE" | "BUSY";
@@ -370,10 +371,11 @@ export type DriverAssignmentStatus = "PENDING" | "ACTIVE" | "COMPLETED" | "CANCE
 
 /** Khớp backend CrewMemberResponse DTO */
 export interface CrewMember {
-    assignmentId: number;   // DriverAssignment.id — dùng cho cancel/replace
-    userId: number;         // User.id (tài xế)
-    fullName: string;       // User.fullName
-    phone: string | null;   // User.phone
-    role: CrewRole;         // MAIN_DRIVER | CO_DRIVER | ATTENDANT
+    assignmentId: number;       // DriverAssignment.id — dùng cho cancel/replace
+    userId: number;             // User.id (tài xế)
+    employeeCode: string | null;// User.employeeCode — mã nhân viên công khai (VD: DRV-0007)
+    fullName: string;           // User.fullName
+    phone: string | null;       // User.phone
+    role: CrewRole;             // MAIN_DRIVER | CO_DRIVER | ATTENDANT
     status: DriverAssignmentStatus;
 }

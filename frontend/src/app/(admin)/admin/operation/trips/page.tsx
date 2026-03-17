@@ -15,6 +15,8 @@ import {
     Clock,
     MapPin,
     User,
+    Users,
+    Phone,
     DollarSign,
     Ticket,
     Plus,
@@ -24,11 +26,15 @@ import {
     CalendarClock,
     AlertTriangle,
     Info,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 import { Trip, TripStatus, Route, TripSchedule } from "@/features/admin/types";
 import { tripService } from "@/features/admin/services/trip-service";
 import { routeService } from "@/features/admin/services/route-service";
 import { scheduleService } from "@/features/admin/services/schedule-service";
+import { bookingService } from "@/features/booking/services/booking-service";
+import { BookingResponse, TicketResponse } from "@/features/booking/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -120,6 +126,9 @@ export default function TripListPage() {
     const [confirmTrip, setConfirmTrip] = useState<Trip | null>(null);
     const [confirmAction, setConfirmAction] = useState<"approve" | "start" | "complete" | "cancel">("approve");
 
+    // Passenger list expand state
+    const [expandedTripId, setExpandedTripId] = useState<number | null>(null);
+
     const queryClient = useQueryClient();
 
     // Fetch Trips
@@ -145,6 +154,29 @@ export default function TripListPage() {
             }
         },
     });
+
+    // Fetch bookings to extract passengers per trip
+    const { data: allBookings = [] } = useQuery({
+        queryKey: ["admin-bookings"],
+        queryFn: () => bookingService.getAllBookings(),
+    });
+
+    // Helper: get tickets for a specific trip
+    const getPassengersForTrip = (tripId: number) => {
+        const passengers: (TicketResponse & { bookingCode: string; guestName: string; bookingStatus: string })[] = [];
+        allBookings.forEach((b: BookingResponse) => {
+            b.tickets?.forEach((t: TicketResponse) => {
+                if (t.tripId === tripId && t.status !== "CANCELLED" && t.status !== "EXPIRED") {
+                    passengers.push({ ...t, bookingCode: b.code, guestName: b.guestName, bookingStatus: b.status });
+                }
+            });
+        });
+        return passengers.sort((a, b) => a.seatNumber.localeCompare(b.seatNumber));
+    };
+
+    const togglePassengers = (tripId: number) => {
+        setExpandedTripId(prev => prev === tripId ? null : tripId);
+    };
 
     // Mutations
     const approveMutation = useMutation({
@@ -495,6 +527,7 @@ export default function TripListPage() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="w-8 py-3.5 px-2"></th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Giờ</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Tuyến</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600 hidden lg:table-cell">Loại xe</th>
@@ -508,14 +541,14 @@ export default function TripListPage() {
                         <tbody className="divide-y divide-gray-50">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={8} className="py-8 text-center text-gray-500">
+                                    <td colSpan={9} className="py-8 text-center text-gray-500">
                                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                                         Đang tải dữ liệu...
                                     </td>
                                 </tr>
                             ) : trips.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-16 text-center text-gray-400">
+                                    <td colSpan={9} className="py-16 text-center text-gray-400">
                                         <Bus className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                                         <p className="text-sm">Không có chuyến nào trong ngày này</p>
                                         <p className="text-xs text-gray-300 mt-1">Nhấn &quot;Sinh chuyến tự động&quot; hoặc &quot;Tạo chuyến thủ công&quot; để thêm chuyến mới</p>
@@ -527,7 +560,7 @@ export default function TripListPage() {
                                     .map((busKey) => (
                                     <Fragment key={busKey}>
                                         <tr className="bg-gray-100/80 border-b border-t border-gray-200">
-                                            <td colSpan={8} className="py-2.5 px-4 hover:bg-transparent">
+                                            <td colSpan={9} className="py-2.5 px-4 hover:bg-transparent">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-6 h-6 rounded bg-brand-blue/10 flex items-center justify-center">
                                                         <Bus className="h-3.5 w-3.5 text-brand-blue" />
@@ -548,8 +581,18 @@ export default function TripListPage() {
                                     const canComplete = trip.status === "RUNNING";
                                     const canCancel = (trip.status === "SCHEDULED" || trip.status === "APPROVED") && !isUnassignedGroup;
 
+                                    const isExpanded = expandedTripId === trip.id;
+                                    const tripPassengers = isExpanded ? getPassengersForTrip(trip.id) : [];
+
                                     return (
-                                        <tr key={trip.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <Fragment key={trip.id}>
+                                        <tr className={cn("hover:bg-gray-50/50 transition-colors cursor-pointer", isExpanded && "bg-blue-50/30")} onClick={() => togglePassengers(trip.id)}>
+                                            {/* Expand Arrow */}
+                                            <td className="py-3.5 px-2 text-center">
+                                                <button className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors">
+                                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                </button>
+                                            </td>
                                             {/* Giờ */}
                                             <td className="py-3.5 px-4">
                                                 <div className="font-semibold text-gray-900">
@@ -687,6 +730,88 @@ export default function TripListPage() {
                                                 </div>
                                             </td>
                                         </tr>
+
+                                        {/* Expanded Passenger List */}
+                                        {isExpanded && (
+                                            <tr>
+                                                <td colSpan={9} className="p-0">
+                                                    <div className="bg-gradient-to-b from-blue-50/50 to-white border-t border-blue-100/50 px-6 py-4">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <Users className="h-4 w-4 text-brand-blue" />
+                                                            <span className="font-semibold text-sm text-gray-800">Danh sách hành khách</span>
+                                                            <span className="bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded-full text-xs font-bold">
+                                                                {tripPassengers.length} người
+                                                            </span>
+                                                        </div>
+                                                        {tripPassengers.length === 0 ? (
+                                                            <div className="text-center py-6 text-gray-400 text-sm">
+                                                                <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                                                Chưa có hành khách nào
+                                                            </div>
+                                                        ) : (
+                                                            <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                                                                <table className="w-full text-xs">
+                                                                    <thead>
+                                                                        <tr className="bg-gray-50 text-gray-500">
+                                                                            <th className="text-left py-2.5 px-3 font-medium">Ghế</th>
+                                                                            <th className="text-left py-2.5 px-3 font-medium">Hành khách</th>
+                                                                            <th className="text-left py-2.5 px-3 font-medium">SĐT</th>
+                                                                            <th className="text-left py-2.5 px-3 font-medium">Mã booking</th>
+                                                                            <th className="text-right py-2.5 px-3 font-medium">Giá vé</th>
+                                                                            <th className="text-center py-2.5 px-3 font-medium">Trạng thái</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-gray-100">
+                                                                        {tripPassengers.map((p) => (
+                                                                            <tr key={p.id} className="hover:bg-gray-50/50">
+                                                                                <td className="py-2.5 px-3">
+                                                                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-blue/10 text-brand-blue font-bold text-xs">
+                                                                                        {p.seatNumber}
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="py-2.5 px-3">
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <User className="h-3 w-3 text-gray-400 shrink-0" />
+                                                                                        <span className="font-medium text-gray-800">{p.passengerName || p.guestName}</span>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className="py-2.5 px-3">
+                                                                                    {p.passengerPhone ? (
+                                                                                        <span className="flex items-center gap-0.5 text-gray-600">
+                                                                                            <Phone className="h-3 w-3" />
+                                                                                            {p.passengerPhone}
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span className="text-gray-400">—</span>
+                                                                                    )}
+                                                                                </td>
+                                                                                <td className="py-2.5 px-3">
+                                                                                    <span className="text-brand-blue font-bold">#{p.bookingCode}</span>
+                                                                                </td>
+                                                                                <td className="py-2.5 px-3 text-right">
+                                                                                    <span className="font-medium text-gray-800">
+                                                                                        {new Intl.NumberFormat("vi-VN").format(p.price)}đ
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="py-2.5 px-3 text-center">
+                                                                                    <span className={cn(
+                                                                                        "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                                                                                        p.bookingStatus === "CONFIRMED" ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-amber-50 text-amber-600 border-amber-200"
+                                                                                    )}>
+                                                                                        {p.bookingStatus === "CONFIRMED" ? "Đã TT" : "Chờ TT"}
+                                                                                    </span>
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                        </Fragment>
                                     );
                                         })
                                     }

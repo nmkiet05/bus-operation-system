@@ -479,8 +479,13 @@ function CrewManagementDialog({
             if (activeCrew.some((m: CrewMember) => m.userId === d.id)) return false;
             // Lọc bằng lái
             if (licenseFilter !== "ALL" && d.driverDetail?.licenseClass !== licenseFilter) return false;
-            // Tìm kiếm theo tên
-            if (searchQuery && !d.fullName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            // Tìm kiếm theo tên hoặc mã nhân viên (không phân biệt hoa thường)
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const matchName = d.fullName.toLowerCase().includes(q);
+                const matchCode = d.employeeCode?.toLowerCase().includes(q) ?? false;
+                if (!matchName && !matchCode) return false;
+            }
             return true;
         });
     }, [availableDrivers, pendingQueue, activeCrew, licenseFilter, searchQuery]);
@@ -669,9 +674,16 @@ function CrewManagementDialog({
                                                     {member.fullName?.[0] || "?"}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-slate-900 truncate">
-                                                        {member.fullName}
-                                                    </p>
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <p className="text-sm font-medium text-slate-900 truncate">
+                                                            {member.fullName}
+                                                        </p>
+                                                        {member.employeeCode && (
+                                                            <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                                                                {member.employeeCode}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className={cn(
                                                             "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
@@ -793,7 +805,7 @@ function CrewManagementDialog({
                                     <div className="relative">
                                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                                         <Input
-                                            placeholder="Tìm theo tên..."
+                                            placeholder="Tìm theo tên hoặc mã (DRV-...)..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="pl-8 h-8 text-xs bg-white"
@@ -847,8 +859,13 @@ function CrewManagementDialog({
                                             {filteredDrivers.map((d: DriverAvailable) => (
                                                 <SelectItem key={d.id} value={String(d.id)}>
                                                     <span className="flex items-center gap-2">
+                                                        {d.employeeCode && (
+                                                            <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                                                {d.employeeCode}
+                                                            </span>
+                                                        )}
                                                         <span>{d.fullName}</span>
-                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-mono ml-auto">
                                                             {d.driverDetail?.licenseClass || "N/A"}
                                                         </span>
                                                     </span>

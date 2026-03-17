@@ -66,9 +66,11 @@ export default function BookingLookupPage() {
             // Reload booking
             const updated = await bookingService.searchBooking(code.trim(), phone.trim());
             setBooking(updated);
+            // ConfirmDialog tự đóng sau khi resolve
         } catch (err) {
             const error = err as { response?: { data?: { message?: string } } };
             toast.error(error?.response?.data?.message || "Không thể hủy đơn đặt vé");
+            throw err; // Re-throw để ConfirmDialog giữ mở khi lỗi
         } finally {
             setCancelling(false);
         }
@@ -82,12 +84,15 @@ export default function BookingLookupPage() {
         setCancellingTicketId(ticketId);
         try {
             await bookingService.cancelTicketPublic(code.trim(), phone.trim(), ticketId);
+            setCancelTicketTargetId(null);
             toast.success("Đã hủy vé thành công!");
             const updated = await bookingService.searchBooking(code.trim(), phone.trim());
             setBooking(updated);
+            // ConfirmDialog tự đóng sau khi resolve
         } catch (err) {
             const error = err as { response?: { data?: { message?: string } } };
             toast.error(error?.response?.data?.message || "Không thể hủy vé");
+            throw err; // Re-throw để ConfirmDialog giữ mở khi lỗi
         } finally {
             setCancellingTicketId(null);
         }

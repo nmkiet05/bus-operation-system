@@ -16,8 +16,9 @@ export interface PaymentResponse {
 
 export const paymentService = {
     processPayment: async (data: PaymentRequest): Promise<PaymentResponse> => {
-        const response = await axiosInstance.post<PaymentResponse>("/payments/process", data);
-        return response.data;
+        const response = await axiosInstance.post<{ result: PaymentResponse; status: number; message: string }>("/payments/process", data);
+        // Backend trả ApiResponse wrapper: { status, message, result }
+        return response.data.result ?? (response.data as unknown as PaymentResponse);
     },
 
     // Backward compatibility

@@ -136,11 +136,26 @@ export default function BookingPage() {
                 throw new Error("Không nhận được mã đặt vé từ server");
             }
 
-            // 5. Process Payment
+            // 5. Cache response vào sessionStorage
+            try {
+                sessionStorage.setItem(
+                    `booking_cache_${bookingCode}`,
+                    JSON.stringify(bookingResult)
+                );
+            } catch {
+                // sessionStorage full hoặc bị disabled → không sao
+            }
+
+            // 6. Xử lý theo phương thức thanh toán
+            if (request.paymentMethod === "BANK_TRANSFER") {
+                // Chuyển khoản QR: redirect sang trang QR — user quét bằng điện thoại
+                router.push(`/payment/qr?code=${bookingCode}&amount=${bookingResult.totalAmount}`);
+                return;
+            }
+
+            // Process Payment cho các phương thức khác
             try {
                 // Chỉ gọi API thanh toán nếu phương thức không phải là trả sau (COUNTER/CASH)
-                // Hiện tại gọi payment API để cập nhật trạng thái booking theo method đã chọn
-                // Trong thực tế, nếu là VNPAY thì redirect, nếu CASH thì ...
                 if (request.paymentMethod !== "COUNTER") {
                     const paymentRes = await paymentService.processPayment({
                         bookingCode: bookingCode,
@@ -158,20 +173,11 @@ export default function BookingPage() {
                 });
             }
 
-            // 6. Cache response vào sessionStorage để success page không cần gọi lại API
-            try {
-                sessionStorage.setItem(
-                    `booking_cache_${bookingCode}`,
-                    JSON.stringify(bookingResult)
-                );
-            } catch {
-                // sessionStorage full hoặc bị disabled → không sao, success page sẽ fallback gọi API
-            }
-
             // Redirect to Success Page
             setTimeout(() => {
                 router.push(`/booking/success?code=${bookingCode}`);
             }, 1000);
+
 
         } catch (error: unknown) {
             console.error("Booking failed:", error);
