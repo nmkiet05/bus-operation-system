@@ -120,6 +120,12 @@ export const ADMIN_SIDEBAR_MENU: SidebarMenuGroup[] = [
         label: "Khác",
         items: [
             {
+                title: "Báo cáo",
+                href: "/admin/reports",
+                icon: "BarChart3",
+                allowedRoles: ["ROLE_ADMIN", "ROLE_MANAGER"],
+            },
+            {
                 title: "Hỗ trợ (Support)",
                 href: "/admin/support",
                 icon: "HelpCircle",

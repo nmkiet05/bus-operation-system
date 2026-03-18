@@ -1,6 +1,6 @@
 try {
-    $loginResp = Invoke-RestMethod -Uri "http://localhost:8080/api/v1/auth/login" -Method Post -Body '{"username": "admin", "password": "root@123456"}' -ContentType "application/json"
-    $token = $loginResp.data.accessToken
+    $loginResp = Invoke-RestMethod -Uri "http://localhost:8080/api/auth/login" -Method Post -Body '{"username": "admin", "password": "root@123456"}' -ContentType "application/json"
+    $token = $loginResp.result.token
     Write-Host "Login success, token obtained."
 
     $headers = @{
@@ -8,17 +8,14 @@ try {
         "Content-Type" = "application/json"
     }
 
-    $body = @{
-        "busId" = 1
-        "tripId" = 6
-        "driverId" = 4
-        "status" = "SCHEDULED"
-        "notes" = "Test from API Script to verify DB save"
-    } | ConvertTo-Json
+    # 1) Public endpoint smoke test
+    $publicResp = Invoke-RestMethod -Uri "http://localhost:8080/api/catalog/provinces" -Method Get
+    Write-Host "Public endpoint success: /api/catalog/provinces"
 
-    $assignResp = Invoke-RestMethod -Uri "http://localhost:8080/api/v1/operation/bus-assignments" -Method Post -Headers $headers -Body $body
-    Write-Host "Create Assignment Success:"
-    $assignResp | ConvertTo-Json -Depth 3 | Write-Host
+    # 2) Protected endpoint smoke test
+    $fleetResp = Invoke-RestMethod -Uri "http://localhost:8080/api/fleet/buses" -Method Get -Headers $headers
+    Write-Host "Protected endpoint success: /api/fleet/buses"
+    $fleetResp | ConvertTo-Json -Depth 3 | Write-Host
 } catch {
     Write-Host "Error: $($_.Exception.Message)"
     if ($_.ErrorDetails) { Write-Host "Details: $($_.ErrorDetails.Message)" }
