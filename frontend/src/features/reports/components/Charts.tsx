@@ -13,18 +13,18 @@ interface ChartProps {
 export function RevenueChart({ data, loading, title }: ChartProps) {
   if (loading) {
     return (
-      <Card className="p-4 border-border">
+      <Card className="p-4 md:p-5 border-border overflow-hidden">
         <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-        <div className="h-80 bg-slate-100 rounded animate-pulse" />
+        <div className="h-[320px] bg-slate-100 rounded animate-pulse" />
       </Card>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <Card className="p-4 border-border">
+      <Card className="p-4 md:p-5 border-border overflow-hidden">
         <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-        <div className="h-80 flex items-center justify-center text-muted-foreground">
+        <div className="h-[320px] flex items-center justify-center text-muted-foreground">
           Không có dữ liệu
         </div>
       </Card>
@@ -39,9 +39,10 @@ export function RevenueChart({ data, loading, title }: ChartProps) {
   }));
 
   return (
-    <Card className="p-4 border-border">
+    <Card className="p-4 md:p-5 border-border overflow-hidden">
       <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-      <ResponsiveContainer width="100%" height={300}>
+      <div className="w-full min-h-[320px]">
+      <ResponsiveContainer width="100%" height={320}>
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
@@ -89,6 +90,7 @@ export function RevenueChart({ data, loading, title }: ChartProps) {
           />
         </LineChart>
       </ResponsiveContainer>
+      </div>
     </Card>
   );
 }
@@ -96,18 +98,18 @@ export function RevenueChart({ data, loading, title }: ChartProps) {
 export function LoadFactorChart({ data, loading, title }: ChartProps) {
   if (loading) {
     return (
-      <Card className="p-4 border-border">
+      <Card className="p-4 md:p-5 border-border overflow-hidden">
         <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-        <div className="h-80 bg-slate-100 rounded animate-pulse" />
+        <div className="h-[320px] bg-slate-100 rounded animate-pulse" />
       </Card>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <Card className="p-4 border-border">
+      <Card className="p-4 md:p-5 border-border overflow-hidden">
         <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-        <div className="h-80 flex items-center justify-center text-muted-foreground">
+        <div className="h-[320px] flex items-center justify-center text-muted-foreground">
           Không có dữ liệu
         </div>
       </Card>
@@ -122,9 +124,10 @@ export function LoadFactorChart({ data, loading, title }: ChartProps) {
   }));
 
   return (
-    <Card className="p-4 border-border">
+    <Card className="p-4 md:p-5 border-border overflow-hidden">
       <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-      <ResponsiveContainer width="100%" height={300}>
+      <div className="w-full min-h-[320px]">
+      <ResponsiveContainer width="100%" height={320}>
         <BarChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
@@ -178,6 +181,7 @@ export function LoadFactorChart({ data, loading, title }: ChartProps) {
           />
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </Card>
   );
 }

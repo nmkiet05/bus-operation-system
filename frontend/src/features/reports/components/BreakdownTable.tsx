@@ -28,7 +28,7 @@ const formatPercent = (value?: number) => {
 export function BreakdownTable({ data, loading, title, type }: BreakdownTableProps) {
   if (loading) {
     return (
-      <Card className="p-4 border-border">
+      <Card className="p-4 md:p-5 border-border">
         <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
@@ -41,7 +41,7 @@ export function BreakdownTable({ data, loading, title, type }: BreakdownTablePro
 
   if (!data || data.length === 0) {
     return (
-      <Card className="p-4 border-border">
+      <Card className="p-4 md:p-5 border-border">
         <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
         <p className="text-muted-foreground text-center py-8">Không có dữ liệu</p>
       </Card>
@@ -49,8 +49,9 @@ export function BreakdownTable({ data, loading, title, type }: BreakdownTablePro
   }
 
   return (
-    <Card className="p-4 border-border overflow-x-auto">
+    <Card className="p-4 md:p-5 border-border">
       <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
+      <div className="w-full overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
@@ -117,6 +118,7 @@ export function BreakdownTable({ data, loading, title, type }: BreakdownTablePro
           ))}
         </TableBody>
       </Table>
+      </div>
     </Card>
   );
 }

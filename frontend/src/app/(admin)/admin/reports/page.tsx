@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, DollarSign, Gauge } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   ReportFilterPanel,
   MetricCard,
@@ -31,6 +32,7 @@ export default function ReportsPage() {
   };
 
   const [queryFilter, setQueryFilter] = useState(initialFilter);
+  const [view, setView] = useState<"overview" | "revenue" | "loadfactor">("overview");
 
   // Revenue Report Query
   const {
@@ -75,13 +77,43 @@ export default function ReportsPage() {
   const isLoading = isLoadingRevenue || isLoadingLoadFactor;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-4xl font-bold text-foreground mb-2">Báo Cáo Kinh Doanh</h1>
+      <div className="space-y-2">
+        <h1 className="text-2xl md:text-4xl font-bold text-foreground">Báo Cáo Kinh Doanh</h1>
         <p className="text-muted-foreground">
           Theo dõi doanh thu, hệ số load và hiệu suất hoạt động của các chuyến xe
         </p>
+      </div>
+
+      {/* Non-linear view switch */}
+      <div className="rounded-lg border border-border bg-card p-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <Button
+            type="button"
+            variant={view === "overview" ? "default" : "outline"}
+            onClick={() => setView("overview")}
+            className={view === "overview" ? "bg-brand-blue hover:bg-brand-blue/90" : ""}
+          >
+            Tổng Quan
+          </Button>
+          <Button
+            type="button"
+            variant={view === "revenue" ? "default" : "outline"}
+            onClick={() => setView("revenue")}
+            className={view === "revenue" ? "bg-brand-blue hover:bg-brand-blue/90" : ""}
+          >
+            Doanh Thu
+          </Button>
+          <Button
+            type="button"
+            variant={view === "loadfactor" ? "default" : "outline"}
+            onClick={() => setView("loadfactor")}
+            className={view === "loadfactor" ? "bg-brand-blue hover:bg-brand-blue/90" : ""}
+          >
+            Hệ Số Load
+          </Button>
+        </div>
       </div>
 
       {/* Filter Panel */}
@@ -110,6 +142,7 @@ export default function ReportsPage() {
       )}
 
       {/* Revenue Section */}
+      {(view === "overview" || view === "revenue") && (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
@@ -167,8 +200,10 @@ export default function ReportsPage() {
           type="revenue"
         />
       </div>
+      )}
 
       {/* Load Factor Section */}
+      {(view === "overview" || view === "loadfactor") && (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
@@ -228,6 +263,7 @@ export default function ReportsPage() {
           type="loadfactor"
         />
       </div>
+      )}
 
       {/* Footer Info */}
       <div className="bg-muted/50 rounded-lg p-4 border border-border">

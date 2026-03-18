@@ -38,20 +38,22 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
 
   const [fromDate, setFromDate] = useState(format(thirtyDaysAgo, "yyyy-MM-dd"));
   const [toDate, setToDate] = useState(format(today, "yyyy-MM-dd"));
-  const [seatClass, setSeatClass] = useState<string>("");
+  const [seatClass, setSeatClass] = useState<string>("ALL");
   const [granularity, setGranularity] = useState<"day" | "week" | "month">("day");
 
   const handleApplyFilter = () => {
     onFilterChange({
       fromDate,
       toDate,
-      seatClass: (seatClass as "BUSINESS" | "SLEEPER" | "ECONOMY" | "") || undefined,
+      seatClass: seatClass === "ALL"
+        ? undefined
+        : (seatClass as "BUSINESS" | "SLEEPER" | "ECONOMY"),
       granularity,
     });
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+    <div className="rounded-lg border border-border bg-card p-4 md:p-5 space-y-4">
       <h3 className="font-semibold text-foreground">Bộ Lọc Báo Cáo</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -66,7 +68,7 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-10"
               disabled={isLoading}
             />
             <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -84,7 +86,7 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-10"
               disabled={isLoading}
             />
             <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -97,11 +99,11 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
             Loại Ghế
           </Label>
           <Select value={seatClass} onValueChange={setSeatClass} disabled={isLoading}>
-            <SelectTrigger id="seatClass">
+            <SelectTrigger id="seatClass" className="h-10">
               <SelectValue placeholder="Tất cả" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả</SelectItem>
+              <SelectItem value="ALL">Tất cả</SelectItem>
               {SEAT_CLASSES.map((cls) => (
                 <SelectItem key={cls.value} value={cls.value}>
                   {cls.label}
@@ -117,7 +119,7 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
             Chu Kỳ
           </Label>
           <Select value={granularity} onValueChange={(v) => setGranularity(v as "day" | "week" | "month")}>
-            <SelectTrigger id="granularity">
+            <SelectTrigger id="granularity" className="h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -136,7 +138,7 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
           <Button
             onClick={handleApplyFilter}
             disabled={isLoading}
-            className="w-full bg-brand-blue hover:bg-brand-blue/90 text-white"
+            className="w-full h-10 bg-brand-blue hover:bg-brand-blue/90 text-white"
           >
             {isLoading ? "Đang tải..." : "Áp Dụng"}
           </Button>
