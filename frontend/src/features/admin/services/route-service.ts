@@ -36,5 +36,14 @@ export const routeService = {
 
     delete: async (id: number): Promise<void> => {
         await axiosClient.delete(`/planning/routes/${id}`);
-    }
+    },
+
+    getTrash: async (): Promise<Route[]> => {
+        const { data } = await axiosClient.get<ApiListResponse<Route>>("/planning/routes/trash");
+        return data.result;
+    },
+
+    restore: async (id: number): Promise<void> => {
+        await axiosClient.post(`/planning/routes/${id}/restore`);
+    },
 };

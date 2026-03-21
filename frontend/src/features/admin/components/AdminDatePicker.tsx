@@ -77,7 +77,7 @@ export function AdminDatePicker({
                     </button>
                 )}
             </div>
-            <PopoverContent className="w-auto p-3 rounded-xl shadow-xl border border-gray-200 bg-white z-[200]" align="start" sideOffset={8}>
+            <PopoverContent className="w-auto p-3 rounded-xl shadow-xl border border-gray-200 bg-white z-[200]" align="center" sideOffset={8}>
                 <Calendar
                     mode="single"
                     selected={value || undefined}

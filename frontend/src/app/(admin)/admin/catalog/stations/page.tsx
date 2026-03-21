@@ -30,7 +30,7 @@ import {
 import { useForm, Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Search, Loader2, MapPin, Ban } from "lucide-react";
+import { Plus, Search, Loader2, MapPin, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -106,6 +106,20 @@ export default function StationsPage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const err = error as any;
             const msg = err.response?.data?.message || "Lỗi khi vô hiệu hóa";
+            toast.error(msg);
+        },
+    });
+
+    const activateMutation = useMutation({
+        mutationFn: stationService.activate,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-stations"] });
+            toast.success("Đã kích hoạt lại bến xe");
+        },
+        onError: (error: unknown) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const err = error as any;
+            const msg = err.response?.data?.message || "Lỗi khi kích hoạt lại";
             toast.error(msg);
         },
     });
@@ -231,7 +245,7 @@ export default function StationsPage() {
                                                 </span>
                                             </td>
                                             <td className="text-right py-3.5 px-4">
-                                                {station.status === "ACTIVE" && (
+                                                {station.status === "ACTIVE" ? (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -240,9 +254,21 @@ export default function StationsPage() {
                                                             setDeactivateTarget({ id: station.id, name: station.name });
                                                             setDeactivateConfirmOpen(true);
                                                         }}
+                                                        disabled={deactivateMutation.isPending}
                                                         title="Vô hiệu hóa"
                                                     >
                                                         <Ban className="h-4 w-4" />
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                                                        onClick={() => activateMutation.mutate(station.id)}
+                                                        disabled={activateMutation.isPending}
+                                                        title="Kích hoạt lại"
+                                                    >
+                                                        <RotateCcw className="h-4 w-4" />
                                                     </Button>
                                                 )}
                                             </td>
@@ -364,14 +390,11 @@ export default function StationsPage() {
                 confirmLabel="Vô hiệu hóa"
                 variant="warning"
                 isLoading={deactivateMutation.isPending}
-                onConfirm={() => {
+                onConfirm={async () => {
                     if (!deactivateTarget) return;
-                    deactivateMutation.mutate(deactivateTarget.id, {
-                        onSuccess: () => {
-                            setDeactivateConfirmOpen(false);
-                            setDeactivateTarget(null);
-                        },
-                    });
+                    await deactivateMutation.mutateAsync(deactivateTarget.id);
+                    setDeactivateConfirmOpen(false);
+                    setDeactivateTarget(null);
                 }}
             />
         </div>

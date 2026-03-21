@@ -44,4 +44,8 @@ export const stationService = {
     deactivate: async (id: number): Promise<void> => {
         await axiosClient.delete(`/catalog/stations/${id}`);
     },
+
+    activate: async (id: number): Promise<void> => {
+        await axiosClient.post(`/catalog/stations/${id}/activate`);
+    },
 };

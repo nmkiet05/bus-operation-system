@@ -29,7 +29,7 @@ import {
 import { useForm, Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Search, Pencil, Trash2, Loader2, Warehouse } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Loader2, Warehouse, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -67,6 +67,7 @@ export default function DepotsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deleteTargetDepot, setDeleteTargetDepot] = useState<DepotItem | null>(null);
+    const [showTrash, setShowTrash] = useState(false);
 
     // Fetch depots
     const { data: depots = [], isLoading } = useQuery<DepotItem[]>({
@@ -74,11 +75,20 @@ export default function DepotsPage() {
         queryFn: depotService.getAll,
     });
 
-    const filteredDepots = depots.filter(
+    // Fetch Trash
+    const { data: trashedDepots = [], isLoading: isLoadingTrash } = useQuery<DepotItem[]>({
+        queryKey: ["admin-depots-trash"],
+        queryFn: depotService.getTrash,
+        enabled: showTrash,
+    });
+
+    const activeDepots = showTrash ? trashedDepots : depots;
+    const filteredDepots = activeDepots.filter(
         (d) =>
             d.name.toLowerCase().includes(search.toLowerCase()) ||
             d.address?.toLowerCase().includes(search.toLowerCase())
     );
+    const isLoadingVisible = showTrash ? isLoadingTrash : isLoading;
 
     // Mutations
     const createMutation = useMutation({
@@ -114,13 +124,24 @@ export default function DepotsPage() {
         mutationFn: depotService.delete,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-depots"] });
-            toast.success("Xóa bãi xe thành công");
+            queryClient.invalidateQueries({ queryKey: ["admin-depots-trash"] });
+            toast.success("Đã chuyển vào thùng rác");
         },
         onError: (error: unknown) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const err = error as any;
             toast.error(err.response?.data?.message || "Lỗi khi xóa");
         },
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: depotService.restore,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-depots"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-depots-trash"] });
+            toast.success("Khôi phục bãi xe thành công");
+        },
+        onError: () => toast.error("Lỗi khi khôi phục"),
     });
 
     const form = useForm<DepotFormData>({
@@ -187,9 +208,20 @@ export default function DepotsPage() {
                         Bãi đỗ xe do công ty quản lý — Hỗ trợ đầy đủ thêm/sửa/xóa
                     </p>
                 </div>
-                <Button onClick={handleCreate} className="bg-brand-blue hover:bg-brand-blue/90">
-                    <Plus className="mr-2 h-4 w-4" /> Thêm bãi xe
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant={showTrash ? "default" : "outline"}
+                        onClick={() => setShowTrash((prev) => !prev)}
+                        size="sm"
+                        className={showTrash ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-white hover:bg-gray-50 text-gray-700 border-gray-200"}
+                    >
+                        <Trash2 className="mr-1.5 h-4 w-4" />
+                        {showTrash ? "Đang xem thùng rác" : "Thùng rác"}
+                    </Button>
+                    <Button onClick={handleCreate} disabled={showTrash} className="bg-brand-blue hover:bg-brand-blue/90">
+                        <Plus className="mr-2 h-4 w-4" /> Thêm bãi xe
+                    </Button>
+                </div>
             </div>
 
             {/* Filter Bar */}
@@ -205,12 +237,12 @@ export default function DepotsPage() {
                         />
                     </div>
                     <div className="flex items-center text-sm text-gray-500 sm:ml-auto">
-                        {isLoading ? (
+                        {isLoadingVisible ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (
                             <span className="font-medium text-gray-900">{filteredDepots.length}</span>
                         )}
-                        &nbsp;bãi xe
+                        &nbsp;{showTrash ? "mục đã xóa" : "bãi xe"}
                     </div>
                 </div>
             </div>
@@ -229,7 +261,7 @@ export default function DepotsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {isLoading ? (
+                            {isLoadingVisible ? (
                                 <tr>
                                     <td colSpan={5} className="text-center py-10 text-gray-500">
                                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
@@ -240,7 +272,7 @@ export default function DepotsPage() {
                                 <tr>
                                     <td colSpan={5} className="text-center py-12 text-gray-400">
                                         <Warehouse className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                                        <p>Không tìm thấy bãi xe nào</p>
+                                        <p>{showTrash ? "Thùng rác trống" : "Không tìm thấy bãi xe nào"}</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -269,27 +301,42 @@ export default function DepotsPage() {
                                             </td>
                                             <td className="text-right py-3.5 px-4">
                                                 <div className="flex justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
-                                                        onClick={() => handleEdit(depot)}
-                                                        title="Chỉnh sửa"
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                        onClick={() => {
-                                                            setDeleteTargetDepot(depot);
-                                                            setDeleteConfirmOpen(true);
-                                                        }}
-                                                        title="Xóa"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    {showTrash ? (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                                            onClick={() => restoreMutation.mutate(depot.id)}
+                                                            disabled={restoreMutation.isPending}
+                                                        >
+                                                            <RotateCcw className="h-4 w-4 mr-1" />
+                                                            Khôi phục
+                                                        </Button>
+                                                    ) : (
+                                                        <>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
+                                                                onClick={() => handleEdit(depot)}
+                                                                title="Chỉnh sửa"
+                                                            >
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                                onClick={() => {
+                                                                    setDeleteTargetDepot(depot);
+                                                                    setDeleteConfirmOpen(true);
+                                                                }}
+                                                                title="Xóa"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

@@ -25,7 +25,27 @@ const formatPercent = (value?: number) => {
   return `${value.toFixed(2)}%`;
 };
 
+type AggregatedBreakdown = {
+  busTypeName: string;
+  grossRevenue: number;
+  netRevenue: number;
+  soldSeats: number;
+  totalSeats: number;
+  avgTicketPrice: number;
+  loadFactorPercentage: number;
+};
+
 export function BreakdownTable({ data, loading, title, type }: BreakdownTableProps) {
+  const aggregatedData: AggregatedBreakdown[] = (data || []).map((row) => ({
+    busTypeName: row.busTypeName || row.busTypeId || "N/A",
+    grossRevenue: Number(row.grossRevenue || 0),
+    netRevenue: Number(row.netRevenue || 0),
+    soldSeats: Number(row.soldSeats || 0),
+    totalSeats: Number(row.totalSeats || 0),
+    avgTicketPrice: Number(row.avgTicketPrice || 0),
+    loadFactorPercentage: Number(row.loadFactorPercentage || 0),
+  }));
+
   if (loading) {
     return (
       <Card className="p-4 md:p-5 border-border">
@@ -39,7 +59,7 @@ export function BreakdownTable({ data, loading, title, type }: BreakdownTablePro
     );
   }
 
-  if (!data || data.length === 0) {
+  if (!aggregatedData || aggregatedData.length === 0) {
     return (
       <Card className="p-4 md:p-5 border-border">
         <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
@@ -55,30 +75,29 @@ export function BreakdownTable({ data, loading, title, type }: BreakdownTablePro
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="font-semibold">Loại Ghế</TableHead>
+            <TableHead className="font-semibold">Loại xe</TableHead>
             {type === "revenue" ? (
               <>
-                <TableHead className="text-right">Doanh Thu Bạn Sơ</TableHead>
-                <TableHead className="text-right">Doanh Thu Ròng</TableHead>
-                <TableHead className="text-right">Ghế Bán</TableHead>
-                <TableHead className="text-right">Giá Trung Bình</TableHead>
-                <TableHead className="text-right">Doanh Thu/Ghế Khả Dụng</TableHead>
+                <TableHead className="text-right">Doanh thu gộp</TableHead>
+                <TableHead className="text-right">Doanh thu thuần</TableHead>
+                <TableHead className="text-right">Vé đã bán</TableHead>
+                <TableHead className="text-right">Giá vé trung bình</TableHead>
+                <TableHead className="text-right">Doanh thu thuần/vé</TableHead>
               </>
             ) : (
               <>
-                <TableHead className="text-right">Hệ Số Load (%)</TableHead>
-                <TableHead className="text-right">Ghế Bán</TableHead>
-                <TableHead className="text-right">Ghế Khả Dụng</TableHead>
-                <TableHead className="text-right">Ghế Trống</TableHead>
+                <TableHead className="text-right">Hệ số lấp đầy (%)</TableHead>
+                <TableHead className="text-right">Vé đã bán</TableHead>
+                <TableHead className="text-right">Tổng số ghế</TableHead>
               </>
             )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row, idx) => (
-            <TableRow key={idx} className="hover:bg-muted/50">
+          {aggregatedData.map((row, idx) => (
+            <TableRow key={`${row.busTypeName}-${idx}`} className="hover:bg-muted/50">
               <TableCell className="font-medium">
-                {row.seatClass || "Tất cả"}
+                {row.busTypeName}
               </TableCell>
               {type === "revenue" ? (
                 <>
@@ -95,7 +114,7 @@ export function BreakdownTable({ data, loading, title, type }: BreakdownTablePro
                     {formatCurrency(row.avgTicketPrice)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(row.revenuePerCapacitySeat)}
+                    {formatCurrency((row.netRevenue || 0) / Math.max(1, row.soldSeats || 0))}
                   </TableCell>
                 </>
               ) : (
@@ -107,10 +126,7 @@ export function BreakdownTable({ data, loading, title, type }: BreakdownTablePro
                     {row.soldSeats || 0}
                   </TableCell>
                   <TableCell className="text-right">
-                    {row.availableSeats || 0}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {row.emptySeats || 0}
+                    {row.totalSeats || 0}
                   </TableCell>
                 </>
               )}

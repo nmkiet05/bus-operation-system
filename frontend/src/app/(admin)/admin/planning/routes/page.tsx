@@ -30,7 +30,7 @@ import {
 import { useForm, Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Search, Pencil, Trash2, Route as RouteIcon, Loader2, MapPin } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Route as RouteIcon, Loader2, MapPin, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Route, RouteRequest } from "@/features/admin/types";
 import { cn } from "@/lib/utils";
@@ -60,11 +60,19 @@ export default function RoutesPage() {
     const [isPickupDialogOpen, setIsPickupDialogOpen] = useState(false);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deleteTargetRoute, setDeleteTargetRoute] = useState<Route | null>(null);
+    const [showTrash, setShowTrash] = useState(false);
 
     // Fetch Routes
     const { data: routes = [], isLoading } = useQuery({
         queryKey: ["routes"],
         queryFn: routeService.getAll,
+    });
+
+    // Fetch Trash Routes
+    const { data: trashedRoutes = [], isLoading: isLoadingTrash } = useQuery({
+        queryKey: ["routes-trash"],
+        queryFn: routeService.getTrash,
+        enabled: showTrash,
     });
 
     // Fetch Stations for Dropdown
@@ -73,9 +81,11 @@ export default function RoutesPage() {
         queryFn: catalogService.getAllStations,
     });
 
-    const filteredRoutes = routes.filter((r) =>
+    const activeRoutes = showTrash ? trashedRoutes : routes;
+    const filteredRoutes = activeRoutes.filter((r) =>
         r.name.toLowerCase().includes(search.toLowerCase())
     );
+    const isLoadingVisible = showTrash ? isLoadingTrash : isLoading;
 
     // Mutations
     const createMutation = useMutation({
@@ -113,7 +123,8 @@ export default function RoutesPage() {
         mutationFn: routeService.delete,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["routes"] });
-            toast.success("Xóa thành công");
+            queryClient.invalidateQueries({ queryKey: ["routes-trash"] });
+            toast.success("Đã chuyển vào thùng rác");
         },
         onError: (error: unknown) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,6 +132,16 @@ export default function RoutesPage() {
             const msg = err.response?.data?.message || "Lỗi khi xóa";
             toast.error(msg);
         },
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: routeService.restore,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["routes"] });
+            queryClient.invalidateQueries({ queryKey: ["routes-trash"] });
+            toast.success("Khôi phục tuyến đường thành công");
+        },
+        onError: () => toast.error("Lỗi khi khôi phục"),
     });
 
     // Form
@@ -187,9 +208,20 @@ export default function RoutesPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Quản lý Tuyến đường</h1>
                     <p className="text-sm text-gray-500 mt-1">Thiết lập lộ trình di chuyển giữa các bến xe</p>
                 </div>
-                <Button onClick={handleCreate} className="bg-brand-blue hover:bg-brand-blue/90">
-                    <Plus className="mr-2 h-4 w-4" /> Thêm tuyến mới
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant={showTrash ? "default" : "outline"}
+                        onClick={() => setShowTrash((prev) => !prev)}
+                        size="sm"
+                        className={showTrash ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-white hover:bg-gray-50 text-gray-700 border-gray-200"}
+                    >
+                        <Trash2 className="mr-1.5 h-4 w-4" />
+                        {showTrash ? "Đang xem thùng rác" : "Thùng rác"}
+                    </Button>
+                    <Button onClick={handleCreate} disabled={showTrash} className="bg-brand-blue hover:bg-brand-blue/90">
+                        <Plus className="mr-2 h-4 w-4" /> Thêm tuyến mới
+                    </Button>
+                </div>
             </div>
 
             {/* Filter Bar */}
@@ -206,14 +238,14 @@ export default function RoutesPage() {
                     </div>
 
                     <div className="flex items-center text-sm text-gray-500 sm:ml-auto">
-                        {isLoading ? (
+                        {isLoadingVisible ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (
                             <span className="font-medium text-gray-900">
                                 {filteredRoutes.length}
                             </span>
                         )}
-                        &nbsp;tuyến đường
+                        &nbsp;{showTrash ? "mục đã xóa" : "tuyến đường"}
                     </div>
                 </div>
             </div>
@@ -234,7 +266,7 @@ export default function RoutesPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {isLoading ? (
+                            {isLoadingVisible ? (
                                 <tr>
                                     <td colSpan={6} className="text-center py-10 text-gray-500">
                                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
@@ -245,7 +277,7 @@ export default function RoutesPage() {
                                 <tr>
                                     <td colSpan={7} className="text-center py-12 text-gray-400">
                                         <RouteIcon className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                                        <p>Không tìm thấy tuyến đường nào</p>
+                                        <p>{showTrash ? "Thùng rác trống" : "Không tìm thấy tuyến đường nào"}</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -299,25 +331,40 @@ export default function RoutesPage() {
                                         </td>
                                         <td className="text-right py-3.5 px-4">
                                             <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
-                                                    onClick={() => handleEdit(route)}
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                    onClick={() => {
-                                                        setDeleteTargetRoute(route);
-                                                        setDeleteConfirmOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                {showTrash ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                                        onClick={() => restoreMutation.mutate(route.id)}
+                                                        disabled={restoreMutation.isPending}
+                                                    >
+                                                        <RotateCcw className="h-4 w-4 mr-1" />
+                                                        Khôi phục
+                                                    </Button>
+                                                ) : (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
+                                                            onClick={() => handleEdit(route)}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                            onClick={() => {
+                                                                setDeleteTargetRoute(route);
+                                                                setDeleteConfirmOpen(true);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

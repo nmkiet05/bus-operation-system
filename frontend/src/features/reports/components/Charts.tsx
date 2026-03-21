@@ -10,6 +10,19 @@ interface ChartProps {
   title: string;
 }
 
+const compactCurrency = (value: number) =>
+  new Intl.NumberFormat("vi-VN", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+
+const formatDateLabel = (value: string) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" }).format(d);
+};
+
 export function RevenueChart({ data, loading, title }: ChartProps) {
   if (loading) {
     return (
@@ -41,19 +54,23 @@ export function RevenueChart({ data, loading, title }: ChartProps) {
   return (
     <Card className="p-4 md:p-5 border-border overflow-hidden">
       <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-      <div className="w-full min-h-[320px]">
-      <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+      <div className="w-full min-h-[360px]">
+      <ResponsiveContainer width="100%" height={360}>
+        <LineChart data={chartData} margin={{ top: 12, right: 16, left: 8, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 11 }}
             stroke="#6b7280"
+            tickFormatter={formatDateLabel}
+            minTickGap={20}
+            interval="preserveStartEnd"
           />
           <YAxis
-            tick={{ fontSize: 12 }}
+            width={72}
+            tick={{ fontSize: 11 }}
             stroke="#6b7280"
-            label={{ value: "Doanh Thu (VND Triệu)", angle: -90, position: "insideLeft" }}
+            tickFormatter={compactCurrency}
           />
           <Tooltip
             formatter={(value: number) =>
@@ -68,8 +85,9 @@ export function RevenueChart({ data, loading, title }: ChartProps) {
               borderRadius: "8px",
               border: "1px solid #e5e7eb",
             }}
+            labelFormatter={(label) => `Ngày: ${label}`}
           />
-          <Legend />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
           <Line
             type="monotone"
             dataKey="netRevenue"
@@ -86,7 +104,7 @@ export function RevenueChart({ data, loading, title }: ChartProps) {
             strokeWidth={2}
             dot={{ fill: "#f59e0b", r: 4 }}
             activeDot={{ r: 6 }}
-            name="Doanh Thu Bạn Sơ"
+            name="Doanh thu gộp"
           />
         </LineChart>
       </ResponsiveContainer>
@@ -120,33 +138,36 @@ export function LoadFactorChart({ data, loading, title }: ChartProps) {
     date: item.reportDate,
     loadFactor: item.loadFactorPercentage || 0,
     sold: item.soldSeats || 0,
-    available: item.availableSeats || 0,
+    totalSeats: item.totalSeats || 0,
   }));
 
   return (
     <Card className="p-4 md:p-5 border-border overflow-hidden">
       <h3 className="font-semibold mb-4 text-foreground">{title}</h3>
-      <div className="w-full min-h-[320px]">
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+      <div className="w-full min-h-[360px]">
+      <ResponsiveContainer width="100%" height={360}>
+        <BarChart data={chartData} margin={{ top: 12, right: 16, left: 8, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 11 }}
             stroke="#6b7280"
+            tickFormatter={formatDateLabel}
+            minTickGap={20}
+            interval="preserveStartEnd"
           />
           <YAxis
             yAxisId="left"
-            tick={{ fontSize: 12 }}
+            width={56}
+            tick={{ fontSize: 11 }}
             stroke="#6b7280"
-            label={{ value: "Ghế", angle: -90, position: "insideLeft" }}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
-            tick={{ fontSize: 12 }}
+            width={56}
+            tick={{ fontSize: 11 }}
             stroke="#0ea5e9"
-            label={{ value: "Hệ Số (%) ", angle: 90, position: "insideRight" }}
           />
           <Tooltip
             contentStyle={{
@@ -154,20 +175,21 @@ export function LoadFactorChart({ data, loading, title }: ChartProps) {
               borderRadius: "8px",
               border: "1px solid #e5e7eb",
             }}
+            labelFormatter={(label) => `Ngày: ${label}`}
           />
-          <Legend />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
           <Bar
             yAxisId="left"
             dataKey="sold"
             fill="#0ea5e9"
-            name="Ghế Bán"
+            name="Ghế đã bán"
             opacity={0.7}
           />
           <Bar
             yAxisId="left"
-            dataKey="available"
+            dataKey="totalSeats"
             fill="#e5e7eb"
-            name="Ghế Khả Dụng"
+            name="Tổng số ghế"
             opacity={0.7}
           />
           <Line
@@ -176,7 +198,7 @@ export function LoadFactorChart({ data, loading, title }: ChartProps) {
             dataKey="loadFactor"
             stroke="#f59e0b"
             strokeWidth={2}
-            name="Hệ Số Load (%)"
+            name="Hệ số lấp đầy (%)"
             dot={{ fill: "#f59e0b", r: 4 }}
           />
         </BarChart>

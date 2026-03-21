@@ -42,5 +42,14 @@ export const busTypeService = {
 
     delete: async (id: number): Promise<void> => {
         await axiosClient.delete(`/fleet/bus-types/${id}`);
-    }
+    },
+
+    getTrash: async (): Promise<BusType[]> => {
+        const { data } = await axiosClient.get<ApiListResponse<BusType>>("/fleet/bus-types/trash");
+        return data.result;
+    },
+
+    restore: async (id: number): Promise<void> => {
+        await axiosClient.post(`/fleet/bus-types/${id}/restore`);
+    },
 };

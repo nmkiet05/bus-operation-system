@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { format, subDays } from "date-fns";
-import { Calendar } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,102 +10,113 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ReportFilter } from "../types";
+import { useBusTypes } from "@/hooks/useMasterData";
+import { AdminDatePicker } from "@/features/admin/components/AdminDatePicker";
 
 interface ReportFilterProps {
+  initialFilter: ReportFilter;
   onFilterChange: (filter: ReportFilter) => void;
   isLoading?: boolean;
 }
 
-const SEAT_CLASSES = [
-  { value: "BUSINESS", label: "Thương Gia" },
-  { value: "SLEEPER", label: "Nằm" },
-  { value: "ECONOMY", label: "Bình Dân" },
-];
-
 const GRANULARITIES = [
-  { value: "day", label: "Hàng ngày" },
-  { value: "week", label: "Hàng tuần" },
-  { value: "month", label: "Hàng tháng" },
+  { value: "day", label: "Theo ngày" },
+  { value: "week", label: "Theo tuần" },
+  { value: "month", label: "Theo tháng" },
 ];
 
-export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterProps) {
-  const today = new Date();
-  const thirtyDaysAgo = subDays(today, 30);
+export function ReportFilterPanel({ initialFilter, onFilterChange, isLoading }: ReportFilterProps) {
+  const today = useMemo(() => new Date(), []);
+  const { data: busTypes = [] } = useBusTypes();
 
-  const [fromDate, setFromDate] = useState(format(thirtyDaysAgo, "yyyy-MM-dd"));
-  const [toDate, setToDate] = useState(format(today, "yyyy-MM-dd"));
-  const [seatClass, setSeatClass] = useState<string>("ALL");
-  const [granularity, setGranularity] = useState<"day" | "week" | "month">("day");
+  const parseDate = (value?: string, fallback?: Date) => {
+    if (!value) return fallback ?? new Date();
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? (fallback ?? new Date()) : d;
+  };
+
+  const [fromDate, setFromDate] = useState<Date>(
+    parseDate(initialFilter?.fromDate, today)
+  );
+  const [toDate, setToDate] = useState<Date>(
+    parseDate(initialFilter?.toDate, today)
+  );
+  const [busTypeId, setBusTypeId] = useState<string>(initialFilter?.busTypeId || "ALL");
+  const [granularity, setGranularity] = useState<"day" | "week" | "month">(
+    initialFilter?.granularity || "day"
+  );
+
+  useEffect(() => {
+    if (!initialFilter) return;
+    setFromDate(parseDate(initialFilter.fromDate, today));
+    setToDate(parseDate(initialFilter.toDate, today));
+    setBusTypeId(initialFilter.busTypeId || "ALL");
+    setGranularity(initialFilter.granularity || "day");
+  }, [initialFilter, today]);
+
+  const normalizedBusTypes = useMemo(
+    () => busTypes
+      .filter((bt) => bt && bt.id !== undefined && bt.id !== null)
+      .map((bt) => ({ id: String(bt.id), name: bt.name || `Loại xe ${bt.id}` })),
+    [busTypes]
+  );
 
   const handleApplyFilter = () => {
     onFilterChange({
-      fromDate,
-      toDate,
-      seatClass: seatClass === "ALL"
-        ? undefined
-        : (seatClass as "BUSINESS" | "SLEEPER" | "ECONOMY"),
+      fromDate: format(fromDate, "yyyy-MM-dd"),
+      toDate: format(toDate, "yyyy-MM-dd"),
+      busTypeId: busTypeId === "ALL" ? undefined : busTypeId,
       granularity,
     });
   };
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 md:p-5 space-y-4">
-      <h3 className="font-semibold text-foreground">Bộ Lọc Báo Cáo</h3>
+      <h3 className="font-semibold text-foreground">Bộ lọc báo cáo</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* From Date */}
         <div className="space-y-2">
           <Label htmlFor="fromDate" className="text-sm font-medium">
-            Từ Ngày
+            Từ ngày
           </Label>
-          <div className="relative">
-            <Input
-              id="fromDate"
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="pl-10 h-10"
-              disabled={isLoading}
-            />
-            <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-          </div>
+          <AdminDatePicker
+            value={fromDate}
+            onChange={(date) => date && setFromDate(date)}
+            disabled={isLoading}
+            className="w-full"
+          />
         </div>
 
         {/* To Date */}
         <div className="space-y-2">
           <Label htmlFor="toDate" className="text-sm font-medium">
-            Đến Ngày
+            Đến ngày
           </Label>
-          <div className="relative">
-            <Input
-              id="toDate"
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="pl-10 h-10"
-              disabled={isLoading}
-            />
-            <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-          </div>
+          <AdminDatePicker
+            value={toDate}
+            onChange={(date) => date && setToDate(date)}
+            disabled={isLoading}
+            className="w-full"
+          />
         </div>
 
-        {/* Seat Class */}
+        {/* Bus Type */}
         <div className="space-y-2">
-          <Label htmlFor="seatClass" className="text-sm font-medium">
-            Loại Ghế
+          <Label htmlFor="busTypeId" className="text-sm font-medium">
+            Loại xe
           </Label>
-          <Select value={seatClass} onValueChange={setSeatClass} disabled={isLoading}>
-            <SelectTrigger id="seatClass" className="h-10">
-              <SelectValue placeholder="Tất cả" />
+          <Select value={busTypeId} onValueChange={setBusTypeId} disabled={isLoading || normalizedBusTypes.length === 0}>
+            <SelectTrigger id="busTypeId" className="h-10 border-0 shadow-none ring-0 focus:ring-0 focus-visible:ring-0 bg-slate-50">
+              <SelectValue placeholder="Tất cả loại xe" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Tất cả</SelectItem>
-              {SEAT_CLASSES.map((cls) => (
-                <SelectItem key={cls.value} value={cls.value}>
-                  {cls.label}
+              <SelectItem value="ALL">Tất cả loại xe</SelectItem>
+              {normalizedBusTypes.map((bt) => (
+                <SelectItem key={bt.id} value={bt.id}>
+                  {bt.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -116,10 +126,10 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
         {/* Granularity */}
         <div className="space-y-2">
           <Label htmlFor="granularity" className="text-sm font-medium">
-            Chu Kỳ
+            Chu kỳ tổng hợp
           </Label>
           <Select value={granularity} onValueChange={(v) => setGranularity(v as "day" | "week" | "month")}>
-            <SelectTrigger id="granularity" className="h-10">
+            <SelectTrigger id="granularity" className="h-10 border-0 shadow-none ring-0 focus:ring-0 focus-visible:ring-0 bg-slate-50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -137,10 +147,10 @@ export function ReportFilterPanel({ onFilterChange, isLoading }: ReportFilterPro
           <Label>&nbsp;</Label>
           <Button
             onClick={handleApplyFilter}
-            disabled={isLoading}
+            disabled={isLoading || toDate < fromDate}
             className="w-full h-10 bg-brand-blue hover:bg-brand-blue/90 text-white"
           >
-            {isLoading ? "Đang tải..." : "Áp Dụng"}
+            {isLoading ? "Đang tải..." : "Áp dụng"}
           </Button>
         </div>
       </div>

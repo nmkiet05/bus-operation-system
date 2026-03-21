@@ -40,6 +40,7 @@ export type TripStatus =
 export interface Trip {
     id: number;
     code: string;
+    tripType?: "MAIN" | "REINFORCEMENT" | string;
     departureTime: string; // HH:mm:ss
     arrivalTime: string; // HH:mm:ss
     routeName: string;

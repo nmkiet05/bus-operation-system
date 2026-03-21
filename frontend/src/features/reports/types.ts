@@ -4,7 +4,6 @@ export interface ReportFilter {
   toDate: string;
   routeId?: string;
   busTypeId?: string;
-  seatClass?: "BUSINESS" | "SLEEPER" | "ECONOMY";
   granularity: "day" | "week" | "month";
 }
 
@@ -19,8 +18,7 @@ export interface KPISummary {
 export interface LoadFactorSummary {
   loadFactorPercentage: number;
   soldSeats: number;
-  availableSeats: number;
-  emptySeats: number;
+  totalSeats: number;
 }
 
 export interface ReportSeries {
@@ -31,22 +29,21 @@ export interface ReportSeries {
   avgTicketPrice?: number;
   revenuePerCapacitySeat?: number;
   loadFactorPercentage?: number;
-  availableSeats?: number;
-  emptySeats?: number;
+  totalSeats?: number;
 }
 
 export interface ReportBreakdown {
-  seatClass?: string;
   routeId?: string;
+  routeName?: string;
   busTypeId?: string;
+  busTypeName?: string;
   grossRevenue?: number;
   netRevenue?: number;
   soldSeats?: number;
   avgTicketPrice?: number;
   revenuePerCapacitySeat?: number;
   loadFactorPercentage?: number;
-  availableSeats?: number;
-  emptySeats?: number;
+  totalSeats?: number;
 }
 
 export interface RevenueReport {

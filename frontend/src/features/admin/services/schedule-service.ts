@@ -35,10 +35,14 @@ export const scheduleService = {
         await axiosClient.delete(`/planning/schedules/${id}`);
     },
 
-    // Generates trips from schedules
-    generate: async (fromDate: string, toDate: string): Promise<void> => {
-        await axiosClient.post(`/operation/trips/generate`, null, {
-            params: { fromDate, toDate }
+    getTrashByRoute: async (routeId: number): Promise<TripSchedule[]> => {
+        const { data } = await axiosClient.get<ApiListResponse<TripSchedule>>("/planning/schedules/trash", {
+            params: { routeId }
         });
+        return data.result;
+    },
+
+    restore: async (id: number): Promise<void> => {
+        await axiosClient.post(`/planning/schedules/${id}/restore`);
     }
 };

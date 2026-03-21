@@ -29,7 +29,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Pencil, Trash2, Armchair, Loader2, Eye } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Armchair, Loader2, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BusType, SeatMapItem } from "@/features/admin/types";
 import { SeatMap } from "@/features/booking/components/SeatMap";
@@ -53,6 +53,7 @@ export default function BusTypesPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deleteTargetType, setDeleteTargetType] = useState<BusType | null>(null);
+    const [showTrash, setShowTrash] = useState(false);
 
     // Fetch
     const { data: busTypes = [], isLoading } = useQuery({
@@ -60,9 +61,18 @@ export default function BusTypesPage() {
         queryFn: busTypeService.getAll,
     });
 
-    const filteredTypes = busTypes.filter((t) =>
+    // Fetch Trash
+    const { data: trashedTypes = [], isLoading: isLoadingTrash } = useQuery({
+        queryKey: ["bus-types-trash"],
+        queryFn: busTypeService.getTrash,
+        enabled: showTrash,
+    });
+
+    const activeTypes = showTrash ? trashedTypes : busTypes;
+    const filteredTypes = activeTypes.filter((t) =>
         t.name.toLowerCase().includes(search.toLowerCase())
     );
+    const isLoadingVisible = showTrash ? isLoadingTrash : isLoading;
 
     // Mutation
     const createMutation = useMutation({
@@ -100,7 +110,8 @@ export default function BusTypesPage() {
         mutationFn: busTypeService.delete,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["bus-types"] });
-            toast.success("Xóa thành công");
+            queryClient.invalidateQueries({ queryKey: ["bus-types-trash"] });
+            toast.success("Đã chuyển vào thùng rác");
         },
         onError: (error: unknown) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,6 +119,16 @@ export default function BusTypesPage() {
             const msg = err.response?.data?.message || "Lỗi khi xóa";
             toast.error(msg);
         },
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: busTypeService.restore,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["bus-types"] });
+            queryClient.invalidateQueries({ queryKey: ["bus-types-trash"] });
+            toast.success("Khôi phục loại xe thành công");
+        },
+        onError: () => toast.error("Lỗi khi khôi phục"),
     });
 
     const form = useForm<BusTypeFormData>({
@@ -197,9 +218,20 @@ export default function BusTypesPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Quản lý Loại xe</h1>
                     <p className="text-sm text-gray-500 mt-1">Định nghĩa các loại phương tiện và sơ đồ ghế</p>
                 </div>
-                <Button onClick={handleCreate} className="bg-brand-blue hover:bg-brand-blue/90">
-                    <Plus className="mr-2 h-4 w-4" /> Tạo loại mới
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant={showTrash ? "default" : "outline"}
+                        onClick={() => setShowTrash((prev) => !prev)}
+                        size="sm"
+                        className={showTrash ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-white hover:bg-gray-50 text-gray-700 border-gray-200"}
+                    >
+                        <Trash2 className="mr-1.5 h-4 w-4" />
+                        {showTrash ? "Đang xem thùng rác" : "Thùng rác"}
+                    </Button>
+                    <Button onClick={handleCreate} disabled={showTrash} className="bg-brand-blue hover:bg-brand-blue/90">
+                        <Plus className="mr-2 h-4 w-4" /> Tạo loại mới
+                    </Button>
+                </div>
             </div>
 
             {/* Filter Bar */}
@@ -216,14 +248,14 @@ export default function BusTypesPage() {
                     </div>
 
                     <div className="flex items-center text-sm text-gray-500 sm:ml-auto">
-                        {isLoading ? (
+                        {isLoadingVisible ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (
                             <span className="font-medium text-gray-900">
                                 {filteredTypes.length}
                             </span>
                         )}
-                        &nbsp;loại xe
+                        &nbsp;{showTrash ? "mục đã xóa" : "loại xe"}
                     </div>
                 </div>
             </div>
@@ -234,29 +266,35 @@ export default function BusTypesPage() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Mã loại xe</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Tên loại xe</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Số ghế</th>
                                 <th className="text-right py-3.5 px-4 font-semibold text-gray-600">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {isLoading ? (
+                            {isLoadingVisible ? (
                                 <tr>
-                                    <td colSpan={3} className="text-center py-10 text-gray-500">
+                                    <td colSpan={4} className="text-center py-10 text-gray-500">
                                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                                         Đang tải dữ liệu...
                                     </td>
                                 </tr>
                             ) : filteredTypes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={3} className="text-center py-12 text-gray-400">
+                                    <td colSpan={4} className="text-center py-12 text-gray-400">
                                         <Armchair className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                                        <p>Không tìm thấy loại xe nào</p>
+                                        <p>{showTrash ? "Thùng rác trống" : "Không tìm thấy loại xe nào"}</p>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredTypes.map((type) => (
                                     <tr key={type.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="py-3.5 px-4 text-gray-500">
+                                            <span className="font-mono text-xs px-1.5 py-0.5 bg-gray-100 rounded text-gray-600 border border-gray-200">
+                                                {type.code || `BT-${type.id}`}
+                                            </span>
+                                        </td>
                                         <td className="py-3.5 px-4 text-gray-900 font-medium">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
@@ -268,35 +306,50 @@ export default function BusTypesPage() {
                                         <td className="py-3.5 px-4 text-gray-600">{type.totalSeats} chỗ</td>
                                         <td className="text-right py-3.5 px-4">
                                             <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                                                    onClick={() => setPreviewType(type)}
-                                                    title="Xem sơ đồ ghế"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
-                                                    onClick={() => handleEdit(type)}
-                                                    title="Chỉnh sửa"
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                    onClick={() => {
-                                                        setDeleteTargetType(type);
-                                                        setDeleteConfirmOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                {showTrash ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                                                        onClick={() => restoreMutation.mutate(type.id)}
+                                                        disabled={restoreMutation.isPending}
+                                                    >
+                                                        <RotateCcw className="h-4 w-4 mr-1" />
+                                                        Khôi phục
+                                                    </Button>
+                                                ) : (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                                                            onClick={() => setPreviewType(type)}
+                                                            title="Xem sơ đồ ghế"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
+                                                            onClick={() => handleEdit(type)}
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                            onClick={() => {
+                                                                setDeleteTargetType(type);
+                                                                setDeleteConfirmOpen(true);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

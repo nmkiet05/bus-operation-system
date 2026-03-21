@@ -33,7 +33,6 @@ type RevenueResult = {
     routeName: string;
     busTypeId: number;
     busTypeName: string;
-    seatClass: string;
     grossRevenue: number;
     refundAmount: number;
     netRevenue: number;
@@ -60,7 +59,6 @@ type LoadFactorResult = {
     routeName: string;
     busTypeId: number;
     busTypeName: string;
-    seatClass: string;
     soldSeats: number;
     availableSeats: number;
     loadFactor: number;
@@ -76,7 +74,6 @@ export const reportService = {
     params.append("granularity", filter.granularity);
     if (filter.routeId) params.append("routeId", filter.routeId);
     if (filter.busTypeId) params.append("busTypeId", filter.busTypeId);
-    if (filter.seatClass) params.append("seatClass", filter.seatClass);
 
     const response = await axiosInstance.get<BackendApiResponse<RevenueResult>>(
       `/reports/revenue?${params.toString()}`
@@ -100,9 +97,10 @@ export const reportService = {
         avgTicketPrice: r.summary.avgTicketPrice,
       })),
       breakdown: r.breakdown.map((b) => ({
-        seatClass: b.seatClass,
-        routeId: String(b.routeId),
+        routeId: b.routeId ? String(b.routeId) : undefined,
+        routeName: b.routeName,
         busTypeId: b.busTypeId ? String(b.busTypeId) : undefined,
+        busTypeName: b.busTypeName,
         grossRevenue: b.grossRevenue,
         netRevenue: b.netRevenue,
         soldSeats: b.soldSeats,
@@ -113,7 +111,6 @@ export const reportService = {
         toDate: filter.toDate,
         routeId: filter.routeId,
         busTypeId: filter.busTypeId,
-        seatClass: filter.seatClass,
         granularity: filter.granularity,
       },
       pagination: {
@@ -131,7 +128,6 @@ export const reportService = {
     params.append("granularity", filter.granularity);
     if (filter.routeId) params.append("routeId", filter.routeId);
     if (filter.busTypeId) params.append("busTypeId", filter.busTypeId);
-    if (filter.seatClass) params.append("seatClass", filter.seatClass);
 
     const response = await axiosInstance.get<BackendApiResponse<LoadFactorResult>>(
       `/reports/load-factor?${params.toString()}`
@@ -142,24 +138,22 @@ export const reportService = {
     return {
       summary: {
         soldSeats: r.summary.soldSeats,
-        availableSeats: r.summary.availableSeats,
+        totalSeats: r.summary.availableSeats,
         loadFactorPercentage: r.summary.loadFactor,
-        emptySeats: Math.max(0, r.summary.availableSeats - r.summary.soldSeats),
       },
       series: r.series.map((s) => ({
         reportDate: s.reportDate,
         soldSeats: s.soldSeats,
-        availableSeats: s.availableSeats,
-        emptySeats: Math.max(0, s.availableSeats - s.soldSeats),
+        totalSeats: s.availableSeats,
         loadFactorPercentage: s.loadFactor,
       })),
       breakdown: r.breakdown.map((b) => ({
-        seatClass: b.seatClass,
-        routeId: String(b.routeId),
+        routeId: b.routeId ? String(b.routeId) : undefined,
+        routeName: b.routeName,
         busTypeId: b.busTypeId ? String(b.busTypeId) : undefined,
+        busTypeName: b.busTypeName,
         soldSeats: b.soldSeats,
-        availableSeats: b.availableSeats,
-        emptySeats: Math.max(0, b.availableSeats - b.soldSeats),
+        totalSeats: b.availableSeats,
         loadFactorPercentage: b.loadFactor,
       })),
       filtersApplied: {
@@ -167,7 +161,6 @@ export const reportService = {
         toDate: filter.toDate,
         routeId: filter.routeId,
         busTypeId: filter.busTypeId,
-        seatClass: filter.seatClass,
         granularity: filter.granularity,
       },
       pagination: {

@@ -102,6 +102,22 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
     { value: "CANCELLED", label: "Đã hủy" },
 ];
 
+const TRIP_TYPE_FILTERS: { value: string; label: string }[] = [
+    { value: "ALL", label: "Tất cả loại chuyến" },
+    { value: "MAIN", label: "Chuyến chính" },
+    { value: "REINFORCEMENT", label: "Chuyến tăng cường" },
+];
+
+const TRIP_TYPE_LABELS: Record<string, string> = {
+    MAIN: "Chuyến chính",
+    REINFORCEMENT: "Chuyến tăng cường",
+};
+
+const getTripTypeLabel = (tripType?: string) => {
+    if (!tripType) return "—";
+    return TRIP_TYPE_LABELS[tripType] || tripType;
+};
+
 export default function TripListPage() {
     // Filter State
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -109,7 +125,27 @@ export default function TripListPage() {
         return today.toISOString().split("T")[0];
     });
     const [statusFilter, setStatusFilter] = useState("ALL");
+    const [tripTypeFilter, setTripTypeFilter] = useState("ALL");
     const [groupFilter, setGroupFilter] = useState("ALL");
+
+    const emptyStateMessage = useMemo(() => {
+        if (tripTypeFilter === "MAIN") {
+            return {
+                title: "Không có chuyến chính trong ngày này",
+                subtitle: "Thử đổi bộ lọc hoặc tạo chuyến chính mới.",
+            };
+        }
+        if (tripTypeFilter === "REINFORCEMENT") {
+            return {
+                title: "Không có chuyến tăng cường trong ngày này",
+                subtitle: "Thử đổi bộ lọc hoặc tạo chuyến tăng cường mới.",
+            };
+        }
+        return {
+            title: "Không có chuyến nào trong ngày này",
+            subtitle: "Nhấn \"Sinh chuyến tự động\" hoặc \"Tạo chuyến thủ công\" để thêm chuyến mới",
+        };
+    }, [tripTypeFilter]);
 
     // Detail Dialog State
     const [detailTrip, setDetailTrip] = useState<Trip | null>(null);
@@ -137,7 +173,7 @@ export default function TripListPage() {
         isLoading,
         refetch,
     } = useQuery({
-        queryKey: ["admin-trips", selectedDate, statusFilter],
+        queryKey: ["admin-trips", selectedDate, statusFilter, tripTypeFilter],
         queryFn: async () => {
             try {
                 const params: Record<string, unknown> = {
@@ -146,6 +182,9 @@ export default function TripListPage() {
                 };
                 if (statusFilter !== "ALL") {
                     params.status = statusFilter;
+                }
+                if (tripTypeFilter !== "ALL") {
+                    params.tripType = tripTypeFilter;
                 }
                 return await tripService.getTrips(params);
             } catch {
@@ -496,6 +535,18 @@ export default function TripListPage() {
                         </SelectContent>
                     </Select>
 
+                    {/* Trip Type Filter */}
+                    <Select value={tripTypeFilter} onValueChange={setTripTypeFilter}>
+                        <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="Loại chuyến" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {TRIP_TYPE_FILTERS.map((tf) => (
+                                <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     {/* Group Filter */}
                     <Select value={groupFilter} onValueChange={setGroupFilter}>
                         <SelectTrigger className="w-[200px]">
@@ -531,6 +582,7 @@ export default function TripListPage() {
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Giờ</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Tuyến</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600 hidden lg:table-cell">Loại xe</th>
+                                <th className="text-left py-3.5 px-4 font-semibold text-gray-600 hidden xl:table-cell">Loại chuyến</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Biển số</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Tài xế</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600 hidden md:table-cell">Vé</th>
@@ -541,17 +593,17 @@ export default function TripListPage() {
                         <tbody className="divide-y divide-gray-50">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={9} className="py-8 text-center text-gray-500">
+                                    <td colSpan={10} className="py-8 text-center text-gray-500">
                                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                                         Đang tải dữ liệu...
                                     </td>
                                 </tr>
                             ) : trips.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="py-16 text-center text-gray-400">
+                                    <td colSpan={10} className="py-16 text-center text-gray-400">
                                         <Bus className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                                        <p className="text-sm">Không có chuyến nào trong ngày này</p>
-                                        <p className="text-xs text-gray-300 mt-1">Nhấn &quot;Sinh chuyến tự động&quot; hoặc &quot;Tạo chuyến thủ công&quot; để thêm chuyến mới</p>
+                                        <p className="text-sm">{emptyStateMessage.title}</p>
+                                        <p className="text-xs text-gray-300 mt-1">{emptyStateMessage.subtitle}</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -560,7 +612,7 @@ export default function TripListPage() {
                                     .map((busKey) => (
                                     <Fragment key={busKey}>
                                         <tr className="bg-gray-100/80 border-b border-t border-gray-200">
-                                            <td colSpan={9} className="py-2.5 px-4 hover:bg-transparent">
+                                            <td colSpan={10} className="py-2.5 px-4 hover:bg-transparent">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-6 h-6 rounded bg-brand-blue/10 flex items-center justify-center">
                                                         <Bus className="h-3.5 w-3.5 text-brand-blue" />
@@ -613,6 +665,24 @@ export default function TripListPage() {
                                             {/* Loại xe */}
                                             <td className="py-3.5 px-4 hidden lg:table-cell">
                                                 <span className="text-gray-600">{trip.busTypeName || trip.busType || "—"}</span>
+                                            </td>
+
+                                            {/* Loại chuyến */}
+                                            <td className="py-3.5 px-4 hidden xl:table-cell">
+                                                {trip.tripType ? (
+                                                    <span
+                                                        className={cn(
+                                                            "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border",
+                                                            trip.tripType === "REINFORCEMENT"
+                                                                ? "bg-violet-50 text-violet-700 border-violet-200"
+                                                                : "bg-sky-50 text-sky-700 border-sky-200"
+                                                        )}
+                                                    >
+                                                        {getTripTypeLabel(trip.tripType)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">—</span>
+                                                )}
                                             </td>
 
                                             {/* Biển số */}
@@ -734,7 +804,7 @@ export default function TripListPage() {
                                         {/* Expanded Passenger List */}
                                         {isExpanded && (
                                             <tr>
-                                                <td colSpan={9} className="p-0">
+                                                <td colSpan={10} className="p-0">
                                                     <div className="bg-gradient-to-b from-blue-50/50 to-white border-t border-blue-100/50 px-6 py-4">
                                                         <div className="flex items-center gap-2 mb-3">
                                                             <Users className="h-4 w-4 text-brand-blue" />
@@ -1026,7 +1096,6 @@ function CreateTripDialog({
     const [selectedRouteId, setSelectedRouteId] = useState<string>("");
     const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
     const [departureDate, setDepartureDate] = useState<Date | null>(null);
-    const [departureTime, setDepartureTime] = useState<string>("");
     const [tripType, setTripType] = useState<string>("MAIN");
     const [note, setNote] = useState<string>("");
 
@@ -1076,7 +1145,6 @@ function CreateTripDialog({
         setSelectedRouteId("");
         setSelectedScheduleId("");
         setDepartureDate(null);
-        setDepartureTime("");
         setTripType("MAIN");
         setNote("");
     };
@@ -1103,9 +1171,6 @@ function CreateTripDialog({
             tripType,
         };
 
-        if (departureTime) {
-            payload.departureTime = departureTime;
-        }
         if (note.trim()) {
             payload.note = note.trim();
         }
@@ -1183,8 +1248,7 @@ function CreateTripDialog({
                                         <div className="flex items-center gap-2">
                                             <CalendarClock className="h-3.5 w-3.5 text-brand-blue" />
                                             <span className="font-medium">{s.departureTime.slice(0, 5)}</span>
-                                            <span className="text-gray-400">—</span>
-                                            <span className="text-gray-500 text-xs">{s.code}</span>
+                                            <span className="text-gray-500 text-xs text-left">{s.code}</span>
                                         </div>
                                     </SelectItem>
                                 ))}
@@ -1197,33 +1261,15 @@ function CreateTripDialog({
                         </Select>
                     </div>
 
-                    {/* Departure Date & Time */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 flex flex-col">
-                            <label className="text-sm font-medium text-gray-700">Ngày khởi hành <span className="text-red-500">*</span></label>
-                            <AdminDatePicker
-                                value={departureDate}
-                                onChange={(d) => setDepartureDate(d || null)}
-                                className="w-full"
-                                placeholder="Chọn ngày"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700">
-                                Giờ thực tế
-                                <span className="text-xs text-gray-400 ml-1">(tùy chọn)</span>
-                            </label>
-                            <div className="h-10 border border-gray-200 rounded-md overflow-hidden bg-white hover:border-brand-blue focus-within:border-brand-blue transition-colors px-3 flex items-center">
-                                <input
-                                    type="time"
-                                    value={departureTime}
-                                    onChange={(e) => setDepartureTime(e.target.value)}
-                                    className="w-full h-full bg-transparent border-none outline-none focus:ring-0 text-sm"
-                                    placeholder="Lấy từ lịch trình"
-                                />
-                            </div>
-                            <p className="text-[10px] text-gray-400">Nếu bỏ trống, hệ thống lấy giờ từ Lịch trình mẫu</p>
-                        </div>
+                    {/* Departure Date */}
+                    <div className="space-y-1.5 flex flex-col">
+                        <label className="text-sm font-medium text-gray-700">Ngày khởi hành <span className="text-red-500">*</span></label>
+                        <AdminDatePicker
+                            value={departureDate}
+                            onChange={(d) => setDepartureDate(d || null)}
+                            className="w-full"
+                            placeholder="Chọn ngày"
+                        />
                     </div>
 
                     {/* Trip Type */}
@@ -1355,13 +1401,25 @@ function TripDetailDialog({
                 <div className="space-y-4 py-2">
                     {/* Status Badge */}
                     <div className="flex items-center justify-between">
-                        <span className={cn(
-                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border",
-                            statusCfg.className
-                        )}>
-                            <StatusIcon className="h-3.5 w-3.5" />
-                            {statusCfg.label}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className={cn(
+                                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border",
+                                statusCfg.className
+                            )}>
+                                <StatusIcon className="h-3.5 w-3.5" />
+                                {statusCfg.label}
+                            </span>
+                            <span
+                                className={cn(
+                                    "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border",
+                                    trip.tripType === "REINFORCEMENT"
+                                        ? "bg-violet-50 text-violet-700 border-violet-200"
+                                        : "bg-sky-50 text-sky-700 border-sky-200"
+                                )}
+                            >
+                                {getTripTypeLabel(trip.tripType || "MAIN")}
+                            </span>
+                        </div>
                         <span className="text-sm text-gray-500">
                             {trip.departureDate}
                         </span>

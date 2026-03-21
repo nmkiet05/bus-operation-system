@@ -1,370 +1,167 @@
 "use client";
 
-import { useState } from "react";
-import { 
-    HelpCircle, 
-    BookOpen, 
-    Bus, 
-    CalendarClock, 
-    TicketPercent, 
-    Map, 
-    Users, 
-    ShieldAlert, 
-    ChevronDown, 
-    ChevronRight 
-} from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { BarChart3, BookOpen, ChevronDown, ChevronRight, HelpCircle, Sigma } from "lucide-react";
 
-const SUPPORT_TOPICS = [
-    {
-        id: "overview",
-        title: "1. Tổng quan hệ thống (Bus Operation System)",
-        icon: BookOpen,
-        color: "text-blue-500",
-        bgColor: "bg-blue-50",
-        content: (
-            <div className="space-y-4 text-slate-600">
-                <p>
-                    <strong className="text-slate-900">Bus Operation System (BOS)</strong> là hệ thống quản lý vận hành xe khách toàn diện, bao gồm các phân hệ (modules) chính:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                    <li><strong>Bán vé (Sales):</strong> Đặt vé, giữ chỗ, thanh toán, quản lý vé.</li>
-                    <li><strong>Điều hành (Operation):</strong> Phân công tài xế, xe bus vào lịch chạy.</li>
-                    <li><strong>Đội xe (Fleet):</strong> Quản lý danh sách xe, bảo trì, thông tin tài xế.</li>
-                    <li><strong>Kế hoạch (Planning):</strong> Cấu hình bến xe, tuyến đường, điểm dừng, bảng giá, lịch trình mẫu.</li>
-                    <li><strong>Nhân sự (Identity/HR):</strong> Quản lý nhân viên, phân quyền truy cập.</li>
-                </ul>
-                <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mt-4">
-                    <p className="text-sm">
-                        💡 <strong>Lưu ý:</strong> Hệ thống được thiết kế theo kiến trúc Microservices, mỗi phân hệ hoạt động độc lập và giao tiếp với nhau qua API/Message Broker nhằm đảm bảo tính mở rộng và chịu lỗi.
-                    </p>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: "sales",
-        title: "2. Module Bán Vé (Sales)",
-        icon: TicketPercent,
-        color: "text-emerald-500",
-        bgColor: "bg-emerald-50",
-        content: (
-            <div className="space-y-4 text-slate-600">
-                <p>Nơi nhân viên phòng vé hoặc quản lý thực hiện thao tác bán vé cho khách hàng.</p>
-                <div className="grid gap-3">
-                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                        <strong className="text-slate-900 block mb-1">Luồng đặt vé (Public/Admin):</strong>
-                        <ol className="list-decimal pl-5 space-y-1 text-sm">
-                            <li>Chọn tuyến và ngày khởi hành, hệ thống hiển thị danh sách các chuyến có trong ngày.</li>
-                            <li>Chọn sơ đồ ghế (có hỗ trợ ghế trống/đã đặt/đang giữ).</li>
-                            <li>Nhập thông tin người đặt và thông tin hành khách cụ thể cho từng ghế.</li>
-                            <li>Chọn điểm đón/trả và phương thức thanh toán.</li>
-                            <li>Xác nhận tạo mã booking (Giữ chỗ hoặc Thanh toán xuất vé).</li>
-                        </ol>
-                    </div>
-                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                        <strong className="text-slate-900 block mb-1">Tra cứu / Hủy vé:</strong>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                            <li>Nhân viên có thể tìm kiếm đơn đặt vé theo Mã booking hoặc Số điện thoại.</li>
-                            <li>Có thể hủy toàn bộ Booking hoặc hủy từng vé lẻ trong Booking. Tiền sẽ được tính lại tự động.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: "operation",
-        title: "3. Module Điều hành (Operation)",
-        icon: CalendarClock,
-        color: "text-orange-500",
-        bgColor: "bg-orange-50",
-        content: (
-            <div className="space-y-4 text-slate-600">
-                <p>Module quan trọng nhất giúp điều phối xe và tài xế chạy hàng ngày.</p>
-                <div className="space-y-3">
-                    <div className="border border-slate-200 rounded-lg p-3">
-                        <strong className="text-slate-900 line-clamp-1">3.1. Phân công ca xe (Trip Assignment)</strong>
-                        <p className="text-sm mt-1">
-                            Lịch trình (TripSchedule) sẽ được Planning cấu hình. Operation sẽ lấy lịch đó và chỉ định: Cụ thể ngày X, giờ Y chuyến xe này sẽ do <span className="font-semibold text-brand-blue">Tài xế nào</span> lái chiếc <span className="font-semibold text-brand-blue">Xe số bao nhiêu</span>.
-                        </p>
-                        <p className="text-sm mt-2 text-red-600 bg-red-50 p-2 rounded border border-red-100">
-                            *Hệ thống có thuật toán kiểm tra xung đột để tài xế và xe không bị xếp trùng giờ hoạt động.
-                        </p>
-                    </div>
-                    <div className="border border-slate-200 rounded-lg p-3">
-                        <strong className="text-slate-900 line-clamp-1">3.2. Cập nhật trạng thái chuyến</strong>
-                        <p className="text-sm mt-1">
-                            Trạng thái vận hành chuẩn của chuyến: SCHEDULED (Đã lên lịch) → APPROVED (Đã duyệt xuất bến) → RUNNING (Đang chạy) → COMPLETED (Hoàn thành) hoặc CANCELLED (Hủy chuyến).
-                        </p>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: "emergency-flow",
-        title: "4. Emergency Flow 5 Vùng (Trip Change)",
-        icon: ShieldAlert,
-        color: "text-rose-500",
-        bgColor: "bg-rose-50",
-        content: (
-            <div className="space-y-5 text-slate-600">
-                <p>
-                    Emergency Flow 5 Vùng là quy trình xử lý thay đổi tài xế/xe theo mức độ khẩn cấp gần giờ khởi hành hoặc khi chuyến đang chạy.
-                    Mục tiêu là đảm bảo phản ứng nhanh nhưng vẫn giữ kiểm soát nghiệp vụ và audit đầy đủ.
-                </p>
+type Topic = {
+  id: string;
+  title: string;
+  icon: typeof BookOpen;
+  content: ReactNode;
+};
 
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 font-semibold text-slate-900">
-                        4.1. Định nghĩa 5 vùng thời gian
-                    </div>
-                    <div className="p-4 space-y-2 text-sm">
-                        <p><span className="font-semibold text-blue-700">STANDARD</span>: Trước giờ chạy đủ xa, đi luồng duyệt bình thường.</p>
-                        <p><span className="font-semibold text-amber-700">URGENT</span>: Cận giờ xuất bến, có cơ chế timeout và escalate.</p>
-                        <p><span className="font-semibold text-orange-700">CRITICAL</span>: Rất sát giờ chạy, auto-execute và yêu cầu hậu kiểm.</p>
-                        <p><span className="font-semibold text-red-700">DEPARTED</span>: Chuyến đã rời bến (RUNNING), không cho reject trực tiếp.</p>
-                        <p><span className="font-semibold text-rose-700">MID_ROUTE</span>: Sự cố dọc đường, bắt buộc ghi nhận incident và hậu kiểm.</p>
-                    </div>
-                </div>
+const SUPPORT_TOPICS: Topic[] = [
+  {
+    id: "report-formulas",
+    title: "1. Công thức tính trên page Report",
+    icon: Sigma,
+    content: (
+      <div className="space-y-4 text-slate-700">
+        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50">
+          <p className="font-semibold text-slate-900 mb-2">Doanh thu gộp</p>
+          <p className="font-mono text-sm">Doanh thu gộp = Tổng giá vé đã ghi nhận</p>
+          <p className="text-sm mt-2">Hiểu đơn giản: tổng tiền bán vé trước khi trừ các khoản hoàn tiền.</p>
+        </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="border border-slate-200 rounded-lg p-4">
-                        <h4 className="font-semibold text-slate-900 mb-2">4.2. Rule thao tác theo vùng</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                            <li>STANDARD, URGENT, CRITICAL: có thể đi nhánh reject theo quy trình tương ứng.</li>
-                            <li>DEPARTED, MID_ROUTE: cấm reject trực tiếp ở luồng duyệt thường.</li>
-                            <li>Vùng auto-execute phải dùng hậu kiểm để xác nhận đạt/không đạt.</li>
-                            <li>MID_ROUTE yêu cầu bổ sung thông tin sự cố: incident type + GPS (nếu có).</li>
-                        </ul>
-                    </div>
-                    <div className="border border-slate-200 rounded-lg p-4">
-                        <h4 className="font-semibold text-slate-900 mb-2">4.3. Trạng thái canonical</h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm">
-                            <li>PENDING: yêu cầu mới tạo, chờ xử lý.</li>
-                            <li>ESCALATED: đã vượt ngưỡng chờ duyệt và được nâng mức khẩn.</li>
-                            <li>APPROVED: đã chấp thuận hoặc xác nhận hợp lệ.</li>
-                            <li>REJECTED: bị từ chối theo rule cho phép.</li>
-                            <li>CANCELLED: yêu cầu bị hủy/hoàn tác.</li>
-                        </ul>
-                    </div>
-                </div>
+        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50">
+          <p className="font-semibold text-slate-900 mb-2">Doanh thu thuần</p>
+          <p className="font-mono text-sm">Doanh thu thuần = Doanh thu gộp - Tiền hoàn vé</p>
+          <p className="text-sm mt-2">Đây là số tiền thực nhận sau khi đã xử lý refund.</p>
+        </div>
 
-                <div className="border border-slate-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-slate-900 mb-2">4.4. Change type chuẩn</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <p>REPLACE_DRIVER: thay tài xế chính</p>
-                        <p>REPLACE_CO_DRIVER: thay tài xế phụ</p>
-                        <p>REPLACE_ATTENDANT: thay nhân viên phục vụ</p>
-                        <p>REPLACE_BUS: thay xe</p>
-                        <p>INCIDENT_SWAP: đổi tài nguyên do sự cố dọc đường</p>
-                    </div>
-                </div>
+        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50">
+          <p className="font-semibold text-slate-900 mb-2">Vé đã bán</p>
+          <p className="font-mono text-sm">Vé đã bán = Số vé hợp lệ theo bộ lọc</p>
+          <p className="text-sm mt-2">Hệ thống hiển thị theo đơn vị vé, không dùng cụm “ghế đã bán”.</p>
+        </div>
 
-                <div className="border border-slate-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-slate-900 mb-2">4.5. Cấu hình vận hành đang áp dụng</h4>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                        <li>Urgent window: 60 phút.</li>
-                        <li>Escalation timeout: 10 phút.</li>
-                        <li>Handover gap: 15 phút.</li>
-                        <li>Rollback window: 30 phút trước giờ chạy.</li>
-                    </ul>
-                </div>
+        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50">
+          <p className="font-semibold text-slate-900 mb-2">Giá vé trung bình</p>
+          <p className="font-mono text-sm">Giá vé trung bình = Doanh thu thuần / Vé đã bán</p>
+        </div>
 
-                <div className="border border-slate-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-slate-900 mb-2">4.6. Nghiệp vụ đã hoàn thiện theo code</h4>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                        <li>Backend đã chặn reject sai vùng (đặc biệt DEPARTED/MID_ROUTE).</li>
-                        <li>Frontend đã guard UX: vùng auto-execute không cho reject trực tiếp.</li>
-                        <li>Màn hình Trip Changes hỗ trợ đầy đủ review, rollback, tạo incident MID_ROUTE.</li>
-                        <li>Luồng đổi xe đã đồng bộ với BusAssignment và VehicleHandover để đảm bảo nhất quán vận hành.</li>
-                    </ul>
-                </div>
+        <div className="rounded-lg border border-slate-200 p-4 bg-slate-50">
+          <p className="font-semibold text-slate-900 mb-2">Hệ số lấp đầy (%)</p>
+          <p className="font-mono text-sm">Hệ số lấp đầy = (Vé đã bán / Tổng số ghế cung ứng) x 100%</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "report-reading",
+    title: "2. Cách đọc hiểu page Report",
+    icon: BarChart3,
+    content: (
+      <div className="space-y-4 text-slate-700">
+        <div>
+          <p className="font-semibold text-slate-900">Bước 1: Chọn bộ lọc</p>
+          <ul className="list-disc pl-5 text-sm mt-2 space-y-1">
+            <li>Từ ngày, đến ngày.</li>
+            <li>Loại xe (nếu cần).</li>
+            <li>Chu kỳ tổng hợp: ngày/tuần/tháng.</li>
+          </ul>
+        </div>
 
-                <div className="bg-rose-50 border border-rose-100 rounded-lg p-4 text-sm text-rose-900">
-                    <p className="font-semibold mb-1">Lưu ý vận hành quan trọng</p>
-                    <p>
-                        Khi xử lý sự cố cận giờ hoặc giữa hành trình, ưu tiên dùng luồng Emergency Flow thay vì thao tác thủ công rời rạc.
-                        Điều này giúp hệ thống giữ được lịch sử audit, tính nhất quán phân công và kiểm soát rủi ro pháp lý.
-                    </p>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: "planning",
-        title: "5. Module Kế hoạch (Planning)",
-        icon: Map,
-        color: "text-purple-500",
-        bgColor: "bg-purple-50",
-        content: (
-            <div className="space-y-4 text-slate-600">
-                <p>Nơi cấu hình các dữ liệu danh mục tĩnh cốt lõi cho hệ thống vé và điều hành.</p>
-                <ul className="list-disc pl-5 space-y-2">
-                    <li>
-                        <strong className="text-slate-900">Bến xe (Stations):</strong> Quản lý danh sách các bến xe lớn ở các tỉnh (Ví dụ: BX Miền Tây, BX Miền Đông).
-                    </li>
-                    <li>
-                        <strong className="text-slate-900">Tuyến đường (Routes):</strong> Định nghĩa lộ trình đi từ Bến A đến Bến B. Gắn với khoảng cách (km) và thời gian di chuyển dự kiến.
-                    </li>
-                    <li>
-                        <strong className="text-slate-900">Điểm đón trả (Pickup Points):</strong> Dọc lộ trình tuyến có thể thiết lập nhiều trạm dừng để khách lên xuống.
-                    </li>
-                    <li>
-                        <strong className="text-slate-900">Lịch trình (Trip Schedules):</strong> Quy định khung giờ xuất bến cố định hằng ngày của một Tuyến. (Ví dụ: Tuyến SG-CT có chuyến 7:00, 9:00, 11:00 hằng ngày).
-                    </li>
-                    <li>
-                        <strong className="text-slate-900">Bảng giá (Fare Config):</strong> Cấu hình giá vé linh hoạt theo thời gian (Ngày lễ, ngày thường) và theo tuyến đường.
-                    </li>
-                </ul>
-            </div>
-        )
-    },
-    {
-        id: "fleet",
-        title: "6. Module Đội xe (Fleet)",
-        icon: Bus,
-        color: "text-amber-500",
-        bgColor: "bg-amber-50",
-        content: (
-            <div className="space-y-4 text-slate-600">
-                <p>Quản lý tài sản (Xe) và Tài xế, nhân viên theo xe.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border border-slate-200 p-3 rounded-lg">
-                        <strong className="flex items-center gap-2 text-slate-900 mb-2">
-                            <Bus className="h-4 w-4" /> Quản lý xe (Bus)
-                        </strong>
-                        <ul className="text-sm list-disc pl-4 space-y-1">
-                            <li>Thêm mới xe theo từng biển số.</li>
-                            <li>Gắn xe với loại xe (BusType: Giường nằm 36 chỗ, Limousine 11 chỗ) để hệ thống biết sơ đồ ghế.</li>
-                            <li>Quản lý mốc hạn kiểm định, hạn bảo hiểm. Giám sát trạng thái xe (Sẵn sàng / Đang bảo trì).</li>
-                        </ul>
-                    </div>
-                    <div className="border border-slate-200 p-3 rounded-lg">
-                        <strong className="flex items-center gap-2 text-slate-900 mb-2">
-                            <Users className="h-4 w-4" /> Quản lý Tài xế (Driver)
-                        </strong>
-                        <ul className="text-sm list-disc pl-4 space-y-1">
-                            <li>Profile tài xế, mã bằng lái.</li>
-                            <li>Hạn giấy phép lái xe.</li>
-                            <li>Theo dõi trạng thái: Có sẵn sàng nhận ca tuyến hay không.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: "security",
-        title: "7. Bảo mật & Phân quyền (Security & Roles)",
-        icon: ShieldAlert,
-        color: "text-red-500",
-        bgColor: "bg-red-50",
-        content: (
-            <div className="space-y-4 text-slate-600">
-                <p>Hệ thống sử dụng Security Context tập trung để bảo vệ API.</p>
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <h4 className="font-semibold text-slate-900 mb-2">Các vai trò trong hệ thống:</h4>
-                    <ul className="space-y-2 text-sm">
-                        <li className="flex items-start gap-2">
-                            <span className="font-mono bg-red-100 text-red-700 px-1 py-0.5 rounded text-xs mt-0.5">ADMIN</span>
-                            <span>Có toàn quyền hệ thống. Truy cập vào Cấu hình, Quản trị người dùng phân quyền.</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="font-mono bg-orange-100 text-orange-700 px-1 py-0.5 rounded text-xs mt-0.5">MANAGER</span>
-                            <span>Quản lý cấp trung. Có quyền thiết lập danh mục, xem toàn bộ báo cáo, phân ca xe (Operation).</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="font-mono bg-blue-100 text-blue-700 px-1 py-0.5 rounded text-xs mt-0.5">STAFF</span>
-                            <span>Nhân viên quầy bán vé. Chỉ được phép thao tác ở luồng Sales (Tạo vé, hủy vé) và xem danh sách chuyến liên quan. Không thể sửa thiết lập danh mục công ty.</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        )
-    }
+        <div>
+          <p className="font-semibold text-slate-900">Bước 2: Đọc KPI tổng quan</p>
+          <ul className="list-disc pl-5 text-sm mt-2 space-y-1">
+            <li>Doanh thu thuần là KPI chính để đánh giá tiền thực nhận.</li>
+            <li>So sánh doanh thu gộp và thuần để thấy mức ảnh hưởng hoàn vé.</li>
+            <li>Giá vé trung bình tăng/giảm giúp nhìn xu hướng chất lượng doanh thu.</li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="font-semibold text-slate-900">Bước 3: Đọc biểu đồ theo thời gian</p>
+          <ul className="list-disc pl-5 text-sm mt-2 space-y-1">
+            <li>Nhìn xu hướng tăng/giảm liên tục theo kỳ.</li>
+            <li>Nếu có ngày đột biến, đối chiếu lại booking/refund ở ngày đó.</li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="font-semibold text-slate-900">Bước 4: Đọc bảng chi tiết theo loại xe</p>
+          <ul className="list-disc pl-5 text-sm mt-2 space-y-1">
+            <li>Bảng cho biết đóng góp của từng loại xe vào doanh thu/lấp đầy.</li>
+            <li>Nếu loại xe có doanh thu thấp nhưng tải cao, cần kiểm tra chiến lược giá.</li>
+            <li>Nếu loại xe có doanh thu cao nhưng tải thấp, cần kiểm tra cơ cấu vé và chính sách hoàn.</li>
+          </ul>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "faq",
+    title: "3. Câu hỏi thường gặp",
+    icon: BookOpen,
+    content: (
+      <div className="space-y-3 text-slate-700 text-sm">
+        <div className="rounded-lg border border-slate-200 p-3">
+          <p className="font-semibold text-slate-900">Vì sao danh sách loại xe có thể khác số dòng chi tiết?</p>
+          <p className="mt-1">Chi tiết báo cáo phụ thuộc bộ lọc thời gian và dữ liệu vận hành trong kỳ. Khi không có phát sinh phù hợp bộ lọc, một số loại xe có thể không xuất hiện hoặc có giá trị 0.</p>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 p-3">
+          <p className="font-semibold text-slate-900">Khi nào cần ưu tiên xem doanh thu thuần?</p>
+          <p className="mt-1">Luôn ưu tiên doanh thu thuần khi đánh giá kết quả kinh doanh, vì chỉ số này đã phản ánh hoàn tiền.</p>
+        </div>
+      </div>
+    ),
+  },
 ];
 
 export default function SupportDocsPage() {
-    const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({
-        overview: true // Mặc định mở phần tổng quan
-    });
+  const [openTopics, setOpenTopics] = useState<Record<string, boolean>>({ "report-formulas": true });
 
-    const toggleTopic = (id: string) => {
-        setOpenTopics(prev => ({ ...prev, [id]: !prev[id] }));
-    };
+  const toggleTopic = (id: string) => {
+    setOpenTopics((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
-    return (
-        <div className="p-6 pb-20 max-w-5xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-                <div className="bg-gradient-to-r from-brand-blue to-sky-600 px-8 py-10">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                            <HelpCircle className="h-8 w-8 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-3xl font-bold text-white">Tài liệu Hỗ trợ & Vận hành</h1>
-                            <p className="text-blue-100 mt-1">Hướng dẫn sử dụng cấu trúc và chức năng hệ thống Bus Operation System</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-6 lg:p-8">
-                    <div className="mb-6 flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-slate-800">Cẩm nang hướng dẫn hệ thống</h2>
-                        <button 
-                            onClick={() => setOpenTopics(SUPPORT_TOPICS.reduce((acc, t) => ({...acc, [t.id]: true}), {}))}
-                            className="text-sm text-brand-blue hover:underline font-medium"
-                        >
-                            Mở rộng tất cả
-                        </button>
-                    </div>
-
-                    <div className="space-y-4">
-                        {SUPPORT_TOPICS.map((topic) => {
-                            const Icon = topic.icon;
-                            const isOpen = openTopics[topic.id];
-
-                            return (
-                                <div key={topic.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow transition-shadow">
-                                    <button 
-                                        onClick={() => toggleTopic(topic.id)}
-                                        className="w-full flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-left"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${topic.bgColor} ${topic.color}`}>
-                                                <Icon className="h-5 w-5" />
-                                            </div>
-                                            <span className="font-bold text-slate-800 text-lg">{topic.title}</span>
-                                        </div>
-                                        <div className="text-slate-400">
-                                            {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-                                        </div>
-                                    </button>
-                                    
-                                    {isOpen && (
-                                        <div className="p-5 border-t border-slate-100">
-                                            {topic.content}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-                
-                {/* Footer hints for the user report */}
-                <div className="bg-slate-50 border-t border-slate-200 p-6 px-8 flex items-start gap-4">
-                    <div className="mt-1 flex-shrink-0">
-                        <BookOpen className="h-6 w-6 text-slate-400" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-800 mb-1">Mẹo viết báo cáo (Thesis Report Hint)</h3>
-                        <p className="text-slate-600 text-sm">
-                            Trang tài liệu này đã liệt kê đầy đủ quy trình và các <code className="bg-slate-200 px-1 py-0.5 rounded text-red-500">module</code> chính mà hệ thống đang chạy. Khi viết sơ đồ Usecase hay phân tích nghiệp vụ, hãy tham khảo các đầu mục bên trên (Điều hành, Bán vé, Hệ thống) để bám sát nhất với luồng chức năng thực tế của Code.
-                        </p>
-                    </div>
-                </div>
+  return (
+    <div className="p-6 pb-20 max-w-5xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+        <div className="bg-gradient-to-r from-brand-blue to-sky-600 px-8 py-10">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+              <HelpCircle className="h-8 w-8 text-white" />
             </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Hỗ trợ đọc hiểu Báo cáo</h1>
+              <p className="text-blue-100 mt-1">Công thức tính và cách diễn giải số liệu trên page Report</p>
+            </div>
+          </div>
         </div>
-    );
+
+        <div className="p-6 lg:p-8">
+          <div className="space-y-4">
+            {SUPPORT_TOPICS.map((topic) => {
+              const Icon = topic.icon;
+              const isOpen = openTopics[topic.id];
+
+              return (
+                <div key={topic.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                  <button
+                    onClick={() => toggleTopic(topic.id)}
+                    className="w-full flex items-center justify-between p-4 bg-slate-50/70 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="font-bold text-slate-800 text-lg">{topic.title}</span>
+                    </div>
+                    <div className="text-slate-400">
+                      {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                    </div>
+                  </button>
+
+                  {isOpen && <div className="p-5 border-t border-slate-100">{topic.content}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

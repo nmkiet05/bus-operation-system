@@ -5,16 +5,16 @@ import { SidebarMenuGroup } from "../types";
  * Phân quyền dựa trên `allowedRoles` - chỉ hiển thị menu mà role đó được phép.
  *
  * ROLE_ADMIN / ROLE_MANAGER: Full access
- * ROLE_STAFF: Chỉ xem Dashboard + Đơn đặt vé
+ * ROLE_STAFF: Chỉ xem Báo cáo + Đơn đặt vé
  */
 export const ADMIN_SIDEBAR_MENU: SidebarMenuGroup[] = [
     {
         label: "Tổng quan",
         items: [
             {
-                title: "Dashboard",
+                title: "Báo cáo vận hành",
                 href: "/admin",
-                icon: "LayoutDashboard",
+                icon: "BarChart3",
                 allowedRoles: ["ROLE_ADMIN", "ROLE_MANAGER", "ROLE_STAFF"],
             },
         ],
@@ -119,12 +119,6 @@ export const ADMIN_SIDEBAR_MENU: SidebarMenuGroup[] = [
     {
         label: "Khác",
         items: [
-            {
-                title: "Báo cáo",
-                href: "/admin/reports",
-                icon: "BarChart3",
-                allowedRoles: ["ROLE_ADMIN", "ROLE_MANAGER"],
-            },
             {
                 title: "Hỗ trợ (Support)",
                 href: "/admin/support",

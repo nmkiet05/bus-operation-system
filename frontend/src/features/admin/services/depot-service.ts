@@ -50,4 +50,13 @@ export const depotService = {
     delete: async (id: number): Promise<void> => {
         await axiosClient.delete(`/depots/${id}`);
     },
+
+    getTrash: async (): Promise<DepotResponse[]> => {
+        const { data } = await axiosClient.get<ApiListResponse<DepotResponse>>("/depots/trash");
+        return data.result;
+    },
+
+    restore: async (id: number): Promise<void> => {
+        await axiosClient.post(`/depots/${id}/restore`);
+    },
 };

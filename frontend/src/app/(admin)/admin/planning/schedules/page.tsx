@@ -29,7 +29,7 @@ import {
 import { useForm, Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Pencil, Trash2, CalendarClock, Play, Route as RouteIcon, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarClock, Route as RouteIcon, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { TripSchedule, TripScheduleRequest } from "@/features/admin/types";
 import { cn } from "@/lib/utils";
@@ -64,11 +64,9 @@ export default function SchedulesPage() {
     const [selectedRouteId, setSelectedRouteId] = useState<string>("");
     const [selectedSchedule, setSelectedSchedule] = useState<TripSchedule | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-    const [genFromDate, setGenFromDate] = useState<Date | null>(null);
-    const [genToDate, setGenToDate] = useState<Date | null>(null);
+    const [showTrash, setShowTrash] = useState(false);
 
     // Fetch Routes (to filter schedules)
     const { data: routes = [] } = useQuery({
@@ -80,6 +78,12 @@ export default function SchedulesPage() {
     const { data: schedules = [], isLoading } = useQuery({
         queryKey: ["schedules", selectedRouteId],
         queryFn: () => scheduleService.getByRoute(Number(selectedRouteId)),
+        enabled: !!selectedRouteId,
+    });
+
+    const { data: trashedSchedules = [], isLoading: isLoadingTrash } = useQuery({
+        queryKey: ["schedules-trash", selectedRouteId],
+        queryFn: () => scheduleService.getTrashByRoute(Number(selectedRouteId)),
         enabled: !!selectedRouteId,
     });
 
@@ -119,7 +123,8 @@ export default function SchedulesPage() {
         mutationFn: scheduleService.delete,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["schedules"] });
-            toast.success("Xóa thành công");
+            queryClient.invalidateQueries({ queryKey: ["schedules-trash"] });
+            toast.success("Đã chuyển lịch trình vào thùng rác");
         },
         onError: (error: unknown) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,19 +134,25 @@ export default function SchedulesPage() {
         },
     });
 
-    const generateMutation = useMutation({
-        mutationFn: ({ from, to }: { from: string; to: string }) =>
-            scheduleService.generate(from, to),
+    const restoreMutation = useMutation({
+        mutationFn: scheduleService.restore,
         onSuccess: () => {
-            toast.success("Sinh chuyến xe thành công! Hãy kiểm tra màn hình Quản lý chuyến.");
-            setIsGenerateDialogOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["schedules"] });
+            queryClient.invalidateQueries({ queryKey: ["schedules-trash"] });
+            toast.success("Khôi phục lịch trình thành công");
         },
         onError: (error: unknown) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const err = error as any;
-            toast.error(err?.response?.data?.message || "Lỗi khi sinh chuyến");
-        }
+            const msg = err.response?.data?.message || "Lỗi khi khôi phục lịch trình";
+            toast.error(msg);
+        },
     });
+
+    const visibleSchedules = showTrash ? trashedSchedules : schedules;
+    const isLoadingVisible = showTrash ? isLoadingTrash : isLoading;
+
+
 
     // Form
     const form = useForm<ScheduleFormData>({
@@ -190,16 +201,6 @@ export default function SchedulesPage() {
         setIsDialogOpen(true);
     };
 
-    const handleGenerate = () => {
-        if (!genFromDate || !genToDate) {
-            toast.warning("Vui lòng chọn ngày bắt đầu và kết thúc");
-            return;
-        }
-        const fromStr = format(genFromDate, "yyyy-MM-dd");
-        const toStr = format(genToDate, "yyyy-MM-dd");
-        generateMutation.mutate({ from: fromStr, to: toStr });
-    };
-
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -210,13 +211,15 @@ export default function SchedulesPage() {
                 </div>
                 <div className="flex gap-2">
                     <Button
-                        variant="outline"
-                        onClick={() => setIsGenerateDialogOpen(true)}
-                        className="bg-white hover:bg-gray-50 text-gray-700 border-gray-200"
+                        variant={showTrash ? "default" : "outline"}
+                        onClick={() => setShowTrash((prev) => !prev)}
+                        disabled={!selectedRouteId}
+                        className={showTrash ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-white hover:bg-gray-50 text-gray-700 border-gray-200"}
                     >
-                        <Play className="mr-2 h-4 w-4 text-brand-blue" /> Sinh chuyến tự động
+                        {showTrash ? "Đang xem thùng rác" : "Thùng rác"}
                     </Button>
-                    <Button onClick={handleCreate} disabled={!selectedRouteId} className="bg-brand-blue hover:bg-brand-blue/90">
+
+                    <Button onClick={handleCreate} disabled={!selectedRouteId || showTrash} className="bg-brand-blue hover:bg-brand-blue/90">
                         <Plus className="mr-2 h-4 w-4" /> Thêm lịch trình
                     </Button>
                 </div>
@@ -242,14 +245,14 @@ export default function SchedulesPage() {
                     </div>
 
                     <div className="flex items-center text-sm text-gray-500 sm:ml-auto">
-                        {isLoading ? (
+                                {isLoadingVisible ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (
                             <span className="font-medium text-gray-900">
-                                {schedules.length}
+                                {visibleSchedules.length}
                             </span>
                         )}
-                        &nbsp;khung giờ
+                        &nbsp;{showTrash ? "mục đã xóa" : "khung giờ"}
                     </div>
                 </div>
             </div>
@@ -276,22 +279,22 @@ export default function SchedulesPage() {
                                         <p>Vui lòng chọn tuyến đường để xem lịch trình</p>
                                     </td>
                                 </tr>
-                            ) : isLoading ? (
+                            ) : isLoadingVisible ? (
                                 <tr>
                                     <td colSpan={6} className="text-center py-10">
                                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-brand-blue" />
                                         Đang tải dữ liệu...
                                     </td>
                                 </tr>
-                            ) : schedules.length === 0 ? (
+                            ) : visibleSchedules.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="text-center py-16 text-gray-500">
                                         <CalendarClock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                                        <p>Chưa có lịch trình nào cho tuyến này</p>
+                                        <p>{showTrash ? "Thùng rác trống" : "Chưa có lịch trình nào cho tuyến này"}</p>
                                     </td>
                                 </tr>
                             ) : (
-                                schedules.map((schedule) => (
+                                visibleSchedules.map((schedule) => (
                                     <tr key={schedule.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="py-3.5 px-4">
                                             <div className="flex items-center gap-2">
@@ -334,25 +337,39 @@ export default function SchedulesPage() {
                                         </td>
                                         <td className="text-right py-3.5 px-4">
                                             <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
-                                                    onClick={() => handleEdit(schedule)}
-                                                >
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                    onClick={() => {
-                                                        setDeleteTargetId(schedule.id);
-                                                        setDeleteConfirmOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                {showTrash ? (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                                                        onClick={() => restoreMutation.mutate(schedule.id)}
+                                                        title="Khôi phục"
+                                                    >
+                                                        <RotateCcw className="h-4 w-4" />
+                                                    </Button>
+                                                ) : (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg"
+                                                            onClick={() => handleEdit(schedule)}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                            onClick={() => {
+                                                                setDeleteTargetId(schedule.id);
+                                                                setDeleteConfirmOpen(true);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -545,45 +562,6 @@ export default function SchedulesPage() {
                             </div>
                         </form>
                     </Form>
-                </DialogContent>
-            </Dialog>
-
-            {/* Generate Dialog */}
-            <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
-                <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white">
-                    <DialogHeader className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                        <DialogTitle className="text-lg text-brand-blue">Sinh chuyến chạy tự động</DialogTitle>
-                    </DialogHeader>
-                    <div className="px-6 py-4 space-y-4">
-                        <p className="text-sm text-gray-500">
-                            Hệ thống sẽ dựa trên các Lịch trình mẫu (Active) để sinh ra các Chuyến xe (Trips) cho khoảng thời gian bạn chọn.
-                        </p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2 flex flex-col">
-                                <label className="text-sm font-medium">Từ ngày</label>
-                                <AdminDatePicker
-                                    value={genFromDate}
-                                    onChange={(d) => setGenFromDate(d || null)}
-                                    className="w-full"
-                                />
-                            </div>
-                            <div className="space-y-2 flex flex-col">
-                                <label className="text-sm font-medium">Đến ngày</label>
-                                <AdminDatePicker
-                                    value={genToDate}
-                                    onChange={(d) => setGenToDate(d || null)}
-                                    className="w-full"
-                                    minDate={genFromDate || undefined}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-                        <Button variant="outline" onClick={() => setIsGenerateDialogOpen(false)}>Hủy</Button>
-                        <Button onClick={handleGenerate} disabled={generateMutation.isPending} className="bg-brand-blue hover:bg-brand-blue/90">
-                            {generateMutation.isPending ? "Đang xử lý..." : "Bắt đầu sinh chuyến"}
-                        </Button>
-                    </div>
                 </DialogContent>
             </Dialog>
         </div>
