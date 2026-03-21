@@ -18,6 +18,8 @@ import {
     User,
     Phone,
     CreditCard,
+    CheckCircle2,
+    Banknote,
 } from "lucide-react";
 import { BookingResponse, TicketResponse } from "@/features/booking/types";
 import { bookingService } from "@/features/booking/services/booking-service";
@@ -72,6 +74,10 @@ export default function AdminBookingsPage() {
     const [cancelTarget, setCancelTarget] = useState<BookingResponse | null>(null);
     const [cancelTicketDialogOpen, setCancelTicketDialogOpen] = useState(false);
     const [cancelTicketTarget, setCancelTicketTarget] = useState<{ ticket: TicketResponse; bookingCode: string } | null>(null);
+    // Confirm payment state
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [confirmTarget, setConfirmTarget] = useState<BookingResponse | null>(null);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
 
     const queryClient = useQueryClient();
 
@@ -122,6 +128,21 @@ export default function AdminBookingsPage() {
         },
     });
 
+    // Confirm payment mutation
+    const confirmMutation = useMutation({
+        mutationFn: ({ code, method }: { code: string; method: string }) =>
+            bookingService.confirmBooking(code, method),
+        onSuccess: () => {
+            toast.success("Xác nhận thanh toán thành công!");
+            setConfirmDialogOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+        },
+        onError: (error: unknown) => {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err?.response?.data?.message || "Lỗi xác nhận thanh toán");
+        },
+    });
+
     const handleCancelOpen = (booking: BookingResponse) => {
         setCancelTarget(booking);
         setCancelDialogOpen(true);
@@ -142,6 +163,17 @@ export default function AdminBookingsPage() {
         cancelTicketMutation.mutate(cancelTicketTarget.ticket.id);
     };
 
+    const handleConfirmOpen = (booking: BookingResponse) => {
+        setConfirmTarget(booking);
+        setSelectedPaymentMethod("CASH");
+        setConfirmDialogOpen(true);
+    };
+
+    const handleConfirmPayment = () => {
+        if (!confirmTarget) return;
+        confirmMutation.mutate({ code: confirmTarget.code, method: selectedPaymentMethod });
+    };
+
     const toggleExpand = (bookingId: number) => {
         setExpandedBookingId(prev => prev === bookingId ? null : bookingId);
     };
@@ -158,6 +190,77 @@ export default function AdminBookingsPage() {
 
     return (
         <div className="space-y-6">
+            {/* Confirm Payment Dialog */}
+            <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            Xác nhận thanh toán tại quầy
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-3 space-y-4">
+                        <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+                            <p className="font-semibold text-gray-800">#{confirmTarget?.code}</p>
+                            <p className="text-gray-500">{confirmTarget?.guestName} — {confirmTarget?.guestPhone}</p>
+                            <p className="text-emerald-600 font-bold text-base">
+                                {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(confirmTarget?.totalAmount || 0)}
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-gray-700">Phương thức thanh toán</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    onClick={() => setSelectedPaymentMethod("CASH")}
+                                    className={cn(
+                                        "flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all",
+                                        selectedPaymentMethod === "CASH"
+                                            ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-200"
+                                            : "border-gray-200 hover:border-gray-300"
+                                    )}
+                                >
+                                    <Banknote className={cn("h-5 w-5", selectedPaymentMethod === "CASH" ? "text-emerald-600" : "text-gray-400")} />
+                                    <div>
+                                        <p className={cn("text-sm font-medium", selectedPaymentMethod === "CASH" ? "text-emerald-700" : "text-gray-700")}>Tiền mặt</p>
+                                        <p className="text-[10px] text-gray-400">Cash tại quầy</p>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => setSelectedPaymentMethod("BANK_TRANSFER")}
+                                    className={cn(
+                                        "flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all",
+                                        selectedPaymentMethod === "BANK_TRANSFER"
+                                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                                            : "border-gray-200 hover:border-gray-300"
+                                    )}
+                                >
+                                    <CreditCard className={cn("h-5 w-5", selectedPaymentMethod === "BANK_TRANSFER" ? "text-blue-600" : "text-gray-400")} />
+                                    <div>
+                                        <p className={cn("text-sm font-medium", selectedPaymentMethod === "BANK_TRANSFER" ? "text-blue-700" : "text-gray-700")}>Chuyển khoản</p>
+                                        <p className="text-[10px] text-gray-400">Bank transfer</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-100">
+                            ⚠ Hành động này sẽ chuyển booking sang trạng thái <strong>Đã thanh toán</strong> và xác nhận tất cả vé.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>Hủy</Button>
+                        <Button
+                            onClick={handleConfirmPayment}
+                            disabled={confirmMutation.isPending}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                            {confirmMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Xác nhận đã thanh toán
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Cancel Booking Dialog */}
             <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                 <DialogContent className="sm:max-w-md">
@@ -335,6 +438,7 @@ export default function AdminBookingsPage() {
                                 filtered.map((booking) => {
                                     const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
                                     const canCancel = booking.status === "PENDING" || booking.status === "CONFIRMED";
+                                    const canConfirm = booking.status === "PENDING";
                                     const firstTicket = booking.tickets?.[0];
                                     const isExpanded = expandedBookingId === booking.id;
 
@@ -425,17 +529,30 @@ export default function AdminBookingsPage() {
 
                                                 {/* Thao tác */}
                                                 <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                                                    {canCancel ? (
-                                                        <button
-                                                            onClick={() => handleCancelOpen(booking)}
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                                                        >
-                                                            <XCircle className="h-3 w-3" />
-                                                            Hủy
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-xs text-gray-400">—</span>
-                                                    )}
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        {canConfirm && (
+                                                            <button
+                                                                onClick={() => handleConfirmOpen(booking)}
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                                                title="Xác nhận khách đã thanh toán tại quầy"
+                                                            >
+                                                                <CheckCircle2 className="h-3 w-3" />
+                                                                Xác nhận TT
+                                                            </button>
+                                                        )}
+                                                        {canCancel && (
+                                                            <button
+                                                                onClick={() => handleCancelOpen(booking)}
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                                            >
+                                                                <XCircle className="h-3 w-3" />
+                                                                Hủy
+                                                            </button>
+                                                        )}
+                                                        {!canConfirm && !canCancel && (
+                                                            <span className="text-xs text-gray-400">—</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
 
