@@ -238,29 +238,43 @@ function TripCard({ trip }: { trip: DriverTrip }) {
                     ) : passengers.length === 0 ? (
                         <p className="text-center text-slate-500 text-xs py-4">Chưa có hành khách đặt vé</p>
                     ) : (
-                        <div className="divide-y divide-slate-800/50 max-h-56 overflow-y-auto">
+                        <div className="divide-y divide-slate-800/50 max-h-72 overflow-y-auto">
                             {passengers.map((p: PassengerInfo) => (
-                                <div key={p.ticketId} className="flex items-start gap-3 px-4 py-2.5">
-                                    <span className="shrink-0 font-mono text-[11px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded mt-0.5">
-                                        {p.seatNumber}
-                                    </span>
+                                <div key={p.ticketId} className="flex items-center gap-3 px-4 py-2.5">
+                                    {/* Avatar chữ cái — giống crew */}
+                                    <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold text-[11px] shrink-0">
+                                        {p.passengerName ? p.passengerName.charAt(0).toUpperCase() : "?"}
+                                    </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white truncate">
-                                            {p.passengerName ?? <span className="text-slate-500 italic">Chưa điền tên</span>}
-                                        </p>
+                                        <div className="flex items-center gap-1.5">
+                                            <p className="text-sm font-medium text-white truncate">
+                                                {p.passengerName ?? <span className="text-slate-500 italic font-normal">Chưa điền tên</span>}
+                                            </p>
+                                            {/* Badge số ghế */}
+                                            <span className="shrink-0 font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 border border-slate-600">
+                                                {p.seatNumber}
+                                            </span>
+                                        </div>
                                         <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-                                            {p.passengerPhone && <span>{p.passengerPhone}</span>}
                                             {p.pickupPoint && (
                                                 <span className="flex items-center gap-0.5">
-                                                    <MapPin className="h-3 w-3" />{p.pickupPoint}
+                                                    <MapPin className="h-3 w-3 text-amber-400" />{p.pickupPoint}
+                                                </span>
+                                            )}
+                                            {p.isCheckedIn && (
+                                                <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 text-[10px]">
+                                                    ✓ Check-in
                                                 </span>
                                             )}
                                         </div>
                                     </div>
-                                    {p.isCheckedIn && (
-                                        <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
-                                            Check-in
-                                        </span>
+                                    {/* Phone clickable — giống crew */}
+                                    {p.passengerPhone && (
+                                        <a href={`tel:${p.passengerPhone}`}
+                                            className="flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 shrink-0">
+                                            <Phone className="h-3 w-3" />
+                                            {p.passengerPhone}
+                                        </a>
                                     )}
                                 </div>
                             ))}

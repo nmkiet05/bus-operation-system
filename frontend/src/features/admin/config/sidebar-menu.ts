@@ -40,6 +40,12 @@ export const ADMIN_SIDEBAR_MENU: SidebarMenuGroup[] = [
                 icon: "Users",
                 allowedRoles: ["ROLE_ADMIN", "ROLE_MANAGER"],
             },
+            {
+                title: "Phân Công Lại",
+                href: "/admin/operation/trip-changes",
+                icon: "ArrowLeftRight",
+                allowedRoles: ["ROLE_ADMIN", "ROLE_MANAGER", "ROLE_STAFF"],
+            },
         ],
     },
     {

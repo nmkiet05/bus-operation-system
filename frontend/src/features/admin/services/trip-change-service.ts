@@ -149,4 +149,13 @@ export const tripChangeService = {
         );
         return data.result;
     },
+
+    /**
+     * Reset Anti-spam cho một user (xóa cooldown)
+     */
+    resetAntiSpam: async (userId: number): Promise<void> => {
+        await axiosClient.post<ApiResponse<void>>(
+            `/operation/trip-changes/reset-anti-spam/${userId}`
+        );
+    },
 };

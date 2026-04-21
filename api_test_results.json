@@ -1,0 +1,104 @@
+﻿{
+    "zone3_critical":  {
+                           "code":  1000,
+                           "message":  "ÄÃ£ thá»±c thi kháº©n cáº¥p (VÃ¹ng CRITICAL), chá» háº­u kiá»m!",
+                           "result":  {
+                                          "id":  19,
+                                          "tripId":  219,
+                                          "routeName":  "SÃ i GÃ²n - Cáº§n ThÆ¡",
+                                          "licensePlate":  "51B-222.22",
+                                          "changeType":  "REPLACE_DRIVER",
+                                          "oldDriverId":  null,
+                                          "oldDriverName":  "N/A",
+                                          "newDriverId":  19,
+                                          "newDriverName":  "Há» VÄn N",
+                                          "oldBusId":  2,
+                                          "newBusId":  null,
+                                          "requestReason":  "[ADMIN POST] Khan cap",
+                                          "status":  "PENDING",
+                                          "isEmergency":  true,
+                                          "urgencyZone":  "CRITICAL",
+                                          "incidentType":  null,
+                                          "incidentGps":  null,
+                                          "createdBy":  1,
+                                          "approvedBy":  null,
+                                          "rejectedReason":  null,
+                                          "createdAt":  "2026-04-18T08:48:40.715915542",
+                                          "updatedAt":  "2026-04-18T08:48:40.715915542"
+                                      },
+                           "timestamp":  1776502120737
+                       },
+    "login_admin":  {
+                        "code":  1000,
+                        "message":  "ÄÄng nháº­p thÃ nh cÃ´ng!",
+                        "result":  {
+                                       "token":  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc3NjUwMjExOSwiZXhwIjoxNzc2NTg4NTE5fQ.DpHvp2gkRCKnTxBu7Jq8Qm47CdmoIGwM7AI89HuNWDg",
+                                       "type":  "Bearer",
+                                       "refreshToken":  "78fcc3be-7d79-4a1a-a877-0ca9110b1741",
+                                       "id":  1,
+                                       "username":  "admin",
+                                       "email":  "admin@bos.vn",
+                                       "fullName":  "System Administrator",
+                                       "phone":  "0900000000",
+                                       "roles":  [
+                                                     "ROLE_MANAGER",
+                                                     "ROLE_ADMIN"
+                                                 ]
+                                   },
+                        "timestamp":  1776502119665
+                    },
+    "login_staff":  {
+                        "code":  1000,
+                        "message":  "ÄÄng nháº­p thÃ nh cÃ´ng!",
+                        "result":  {
+                                       "token":  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzdGFmZjAxIiwiaWF0IjoxNzc2NTAyMTE5LCJleHAiOjE3NzY1ODg1MTl9.X5QAfniJuRwiSpV6N2vsU88gt_tChI2WOoV2iDklL_w",
+                                       "type":  "Bearer",
+                                       "refreshToken":  "073736d0-b1c4-4d46-8b68-2c677e83e3a6",
+                                       "id":  2,
+                                       "username":  "staff01",
+                                       "email":  "staff01@bos.vn",
+                                       "fullName":  "Nguyá»\u0085n Thu HÃ ",
+                                       "phone":  "0901111111",
+                                       "roles":  [
+                                                     "ROLE_STAFF"
+                                                 ]
+                                   },
+                        "timestamp":  1776502119573
+                    },
+    "zone1_standard":  {
+                           "approve":  {
+                                           "code":  1000,
+                                           "message":  "Duyá»t yÃªu cáº§u thÃ nh cÃ´ng!",
+                                           "timestamp":  1776502120599
+                                       },
+                           "request":  {
+                                           "code":  1000,
+                                           "message":  "Táº¡o yÃªu cáº§u thÃ nh cÃ´ng (VÃ¹ng STANDARD), chá» Admin duyá»t!",
+                                           "result":  {
+                                                          "id":  18,
+                                                          "tripId":  203,
+                                                          "routeName":  "SÃ i GÃ²n - Cáº§n ThÆ¡",
+                                                          "licensePlate":  "51B-123.45",
+                                                          "changeType":  "REPLACE_DRIVER",
+                                                          "oldDriverId":  null,
+                                                          "oldDriverName":  "N/A",
+                                                          "newDriverId":  17,
+                                                          "newDriverName":  "NgÃ´ VÄn L",
+                                                          "oldBusId":  1,
+                                                          "newBusId":  null,
+                                                          "requestReason":  "[ADMIN POST] Doi tai xe",
+                                                          "status":  "PENDING",
+                                                          "isEmergency":  false,
+                                                          "urgencyZone":  "STANDARD",
+                                                          "incidentType":  null,
+                                                          "incidentGps":  null,
+                                                          "createdBy":  1,
+                                                          "approvedBy":  null,
+                                                          "rejectedReason":  null,
+                                                          "createdAt":  "2026-04-18T08:48:40.563330477",
+                                                          "updatedAt":  "2026-04-18T08:48:40.563330477"
+                                                      },
+                                           "timestamp":  1776502120571
+                                       }
+                       }
+}

@@ -18,10 +18,26 @@ function QrPageContent() {
     const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const confirmUrl =
-        typeof window !== "undefined"
-            ? `${window.location.origin}/payment/confirm?code=${code}`
-            : `/payment/confirm?code=${code}`;
+    let confirmUrl = "";
+    if (typeof window !== "undefined") {
+        let host = window.location.hostname;
+        const port = window.location.port ? `:${window.location.port}` : "";
+        const protocol = window.location.protocol;
+
+        // Khắc phục: Nếu dev mở web bằng localhost, nhưng API đang cấu hình IP LAN (192.168.x.x)
+        // thì đổi host thành IP LAN để điện thoại quét mã QR có thể truy cập được.
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        if (host === "localhost" || host === "127.0.0.1") {
+            try {
+                if (apiUrl.startsWith("http")) {
+                    host = new URL(apiUrl).hostname;
+                }
+            } catch { /* ignore */ }
+        }
+        confirmUrl = `${protocol}//${host}${port}/payment/confirm?code=${code}`;
+    } else {
+        confirmUrl = `/payment/confirm?code=${code}`;
+    }
 
     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(confirmUrl)}&size=220x220&margin=12`;
 
@@ -68,7 +84,6 @@ function QrPageContent() {
         };
 
         poll();
-
         // Khi user quay lại tab → poll ngay
         const handleVisibility = () => {
             if (!document.hidden && isMounted) {
@@ -77,9 +92,12 @@ function QrPageContent() {
             }
         };
 
+        document.addEventListener("visibilitychange", handleVisibility);
+
         return () => {
             isMounted = false; // 3. Set false khi rời trang
             if (timeoutId) clearTimeout(timeoutId);
+            document.removeEventListener("visibilitychange", handleVisibility);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [code, router]);

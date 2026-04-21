@@ -61,6 +61,13 @@ export interface Trip {
     // Bến xuất phát và bến đến (từ backend route.departureStation / arrivalStation)
     departureStationName?: string;
     arrivalStationName?: string;
+    // Danh sách phi hành đoàn
+    crew?: {
+        userId: number;
+        fullName: string;
+        role: "MAIN_DRIVER" | "CO_DRIVER";
+        status: string;
+    }[];
 }
 
 /** Bộ lọc cho danh sách chuyến */
@@ -339,7 +346,7 @@ export interface BusAssignment {
 
 export type ChangeRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "ESCALATED" | "CANCELLED";
 export type ChangeUrgencyZone = "STANDARD" | "URGENT" | "CRITICAL" | "DEPARTED" | "MID_ROUTE";
-export type TripChangeType = "REPLACE_DRIVER" | "REPLACE_CO_DRIVER" | "REPLACE_ATTENDANT" | "REPLACE_BUS" | "INCIDENT_SWAP";
+export type TripChangeType = "REPLACE_DRIVER" | "REPLACE_CO_DRIVER" | "REPLACE_BUS" | "INCIDENT_SWAP";
 
 export interface TripChangeResponse {
     id: number;

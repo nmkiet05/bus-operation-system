@@ -12,6 +12,10 @@ import {
     CheckCircle2,
     AlertTriangle,
     MessageSquare,
+    RotateCcw,
+    User2,
+    Bus as BusIcon,
+    ArrowRight
 } from "lucide-react";
 import {
     TripChangeRequest,
@@ -39,6 +43,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import { AdminDatePicker } from "@/features/admin/components/AdminDatePicker";
+import { useAuth } from "@/providers/auth-provider";
 
 // Status config
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ElementType }> = {
@@ -63,9 +69,9 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: Re
         icon: XCircle,
     },
     CANCELLED: {
-        label: "Đã hủy",
-        className: "bg-gray-50 text-gray-600 border-gray-200",
-        icon: XCircle,
+        label: "Đã hoàn tác",
+        className: "bg-slate-50 text-slate-500 border-slate-200",
+        icon: RotateCcw,
     },
 };
 
@@ -93,13 +99,14 @@ const STATUS_FILTERS = [
     { value: "ESCALATED", label: "Đã escalate" },
     { value: "APPROVED", label: "Đã duyệt" },
     { value: "REJECTED", label: "Từ chối" },
+    { value: "CANCELLED", label: "Đã hoàn tác" },
 ];
 
 const INCIDENT_TYPE_OPTIONS = [
-    { value: "FATIGUE_SWAP", label: "Mệt mỏi cần đổi tài" },
-    { value: "DRIVER_HEALTH", label: "Sức khỏe tài xế" },
-    { value: "VEHICLE_BREAKDOWN", label: "Xe hỏng dọc đường" },
-    { value: "TRAFFIC_ACCIDENT", label: "Tai nạn giao thông" },
+    { value: "FATIGUE_SWAP", label: "Tài xế mệt mỏi — cần thay ca (TT09/2015)" },
+    { value: "DRIVER_HEALTH", label: "Tài xế có vấn đề sức khỏe đột xuất" },
+    { value: "VEHICLE_BREAKDOWN", label: "Phương tiện hư hỏng / không đảm bảo ATKT" },
+    { value: "TRAFFIC_ACCIDENT", label: "Tai nạn giao thông — cần ứng cứu" },
 ];
 
 export default function TripChangesPage() {
@@ -119,12 +126,15 @@ export default function TripChangesPage() {
     const [rollbackTarget, setRollbackTarget] = useState<TripChangeRequest | null>(null);
     const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
     const [incidentTripId, setIncidentTripId] = useState<number | null>(null);
+    const [incidentDate, setIncidentDate] = useState<string>(new Date().toISOString().split("T")[0]);
+    const [incidentCrewRole, setIncidentCrewRole] = useState<"REPLACE_DRIVER" | "REPLACE_CO_DRIVER">("REPLACE_DRIVER");
     const [incidentDriverId, setIncidentDriverId] = useState<number | null>(null);
     const [incidentType, setIncidentType] = useState("FATIGUE_SWAP");
     const [incidentGps, setIncidentGps] = useState("");
     const [incidentReason, setIncidentReason] = useState("");
 
     const queryClient = useQueryClient();
+    const { user: currentUser } = useAuth();
 
     // Fetch
     const { data: requests = [], isLoading, refetch } = useQuery({
@@ -133,8 +143,8 @@ export default function TripChangesPage() {
     });
 
     const { data: runningTrips = [], isLoading: isLoadingRunningTrips } = useQuery({
-        queryKey: ["incident-running-trips"],
-        queryFn: () => tripService.getTrips({ status: "RUNNING" }),
+        queryKey: ["incident-running-trips", incidentDate],
+        queryFn: () => tripService.getTrips({ status: "RUNNING", fromDate: incidentDate, toDate: incidentDate }),
     });
 
     const { data: incidentDrivers = [], isLoading: isLoadingIncidentDrivers } = useQuery({
@@ -207,6 +217,7 @@ export default function TripChangesPage() {
     const incidentMutation = useMutation({
         mutationFn: (payload: {
             tripId: number;
+            changeType: "REPLACE_DRIVER" | "REPLACE_CO_DRIVER";
             newDriverId: number;
             incidentType: "FATIGUE_SWAP" | "DRIVER_HEALTH" | "VEHICLE_BREAKDOWN" | "TRAFFIC_ACCIDENT";
             incidentGps?: string;
@@ -215,7 +226,7 @@ export default function TripChangesPage() {
             tripChangeService.incident(
                 {
                     tripId: payload.tripId,
-                    changeType: "INCIDENT_SWAP",
+                    changeType: payload.changeType,
                     reason: payload.reason,
                     newDriverId: payload.newDriverId,
                 },
@@ -226,6 +237,8 @@ export default function TripChangesPage() {
             toast.success("Đã tạo sự cố dọc đường và gửi hậu kiểm");
             setIncidentDialogOpen(false);
             setIncidentTripId(null);
+            setIncidentCrewRole("REPLACE_DRIVER");
+            setIncidentDate(new Date().toISOString().split("T")[0]);
             setIncidentDriverId(null);
             setIncidentType("FATIGUE_SWAP");
             setIncidentGps("");
@@ -235,6 +248,17 @@ export default function TripChangesPage() {
         onError: (error: unknown) => {
             const err = error as { response?: { data?: { message?: string } } };
             toast.error(err?.response?.data?.message || "Lỗi báo sự cố dọc đường");
+        },
+    });
+
+    const resetAntiSpamMutation = useMutation({
+        mutationFn: (userId: number) => tripChangeService.resetAntiSpam(userId),
+        onSuccess: () => {
+            toast.success("Đã reset giới hạn gửi yêu cầu (Anti-spam) cho bạn");
+        },
+        onError: (error: unknown) => {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err?.response?.data?.message || "Lỗi reset Anti-spam");
         },
     });
 
@@ -295,6 +319,7 @@ export default function TripChangesPage() {
 
         incidentMutation.mutate({
             tripId: incidentTripId,
+            changeType: incidentCrewRole,
             newDriverId: incidentDriverId,
             incidentType: incidentType as "FATIGUE_SWAP" | "DRIVER_HEALTH" | "VEHICLE_BREAKDOWN" | "TRAFFIC_ACCIDENT",
             incidentGps: incidentGps.trim() || undefined,
@@ -432,12 +457,30 @@ export default function TripChangesPage() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-orange-500" />
-                            Báo sự cố dọc đường (MID_ROUTE)
+                            Biên bản sự cố dọc đường
                         </DialogTitle>
+                        <p className="text-xs text-gray-500">Vùng MID_ROUTE — Hệ thống tự động thực thi, chờ hậu kiểm</p>
                     </DialogHeader>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
                         <div className="space-y-1.5 sm:col-span-2">
-                            <p className="text-xs font-medium text-gray-600">Chuyến đang chạy</p>
+                            <p className="text-xs font-medium text-gray-600">Ngày chạy <span className="text-red-500">*</span></p>
+                            <AdminDatePicker
+                                value={incidentDate ? new Date(incidentDate) : new Date()}
+                                onChange={(date) => {
+                                    if (date) {
+                                        setIncidentDate(format(date, "yyyy-MM-dd"));
+                                    } else {
+                                        setIncidentDate("");
+                                    }
+                                    setIncidentTripId(null);
+                                    setIncidentDriverId(null);
+                                }}
+                                allowPastDates={true}
+                                className="w-full bg-white h-10 border-input text-gray-900 border"
+                            />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-xs font-medium text-gray-600">Chuyến xe đang vận hành <span className="text-red-500">*</span></p>
                             <Select
                                 value={incidentTripId ? String(incidentTripId) : undefined}
                                 onValueChange={(value) => {
@@ -447,19 +490,66 @@ export default function TripChangesPage() {
                                 }}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder={isLoadingRunningTrips ? "Đang tải chuyến..." : "Chọn chuyến RUNNING"} />
+                                    <SelectValue placeholder={isLoadingRunningTrips ? "Đang tải..." : "— Chọn chuyến đang chạy —"} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {runningTrips.map((trip) => (
                                         <SelectItem key={trip.id} value={String(trip.id)}>
-                                            {trip.code} - {trip.routeName}
+                                            {trip.code} — {trip.routeName} ({trip.busLicensePlate || "Chưa gán xe"})
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
+                        {incidentTripId && (
+                            <div className="sm:col-span-2 bg-slate-50 border rounded-md p-3 mb-1">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Thông tin chuyến gặp sự cố</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">Nhân sự gặp sự cố <span className="text-red-500">*</span></p>
+                                        <Select value={incidentCrewRole} onValueChange={(v: "REPLACE_DRIVER" | "REPLACE_CO_DRIVER") => setIncidentCrewRole(v)}>
+                                            <SelectTrigger className="bg-white h-8 text-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(() => {
+                                                    const trip = runningTrips.find(t => t.id === incidentTripId);
+                                                    if (trip?.crew && trip.crew.length > 0) {
+                                                        return trip.crew.map(c => {
+                                                            const chgType = c.role === "MAIN_DRIVER" ? "REPLACE_DRIVER" : "REPLACE_CO_DRIVER";
+                                                            const roleName = c.role === "MAIN_DRIVER" ? "Tài xế chính" : "Tài xế phụ";
+                                                            return <SelectItem key={c.userId} value={chgType}>{roleName}: {c.fullName}</SelectItem>;
+                                                        });
+                                                    }
+                                                    return <SelectItem value="REPLACE_DRIVER">Tài xế chính: {trip?.driverName || "Chưa rõ"}</SelectItem>;
+                                                })()}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="border-l pl-4 border-gray-200">
+                                        <p className="text-xs text-gray-500 mb-1">Phương tiện</p>
+                                        <p className="text-sm font-semibold text-gray-900 mt-1.5 flex items-center h-8">
+                                            {runningTrips.find(t => t.id === incidentTripId)?.busLicensePlate || "Chưa rõ xe"}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="space-y-1.5 sm:col-span-2">
-                            <p className="text-xs font-medium text-gray-600">Tài xế thay thế</p>
+                            <p className="text-xs font-medium text-gray-600">Phân loại sự cố <span className="text-red-500">*</span></p>
+                            <Select value={incidentType} onValueChange={setIncidentType}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="— Chọn loại sự cố —" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {INCIDENT_TYPE_OPTIONS.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <p className="text-xs font-medium text-gray-600">Tài xế thay thế <span className="text-red-500">*</span></p>
                             <Select
                                 value={incidentDriverId ? String(incidentDriverId) : undefined}
                                 onValueChange={(value) => setIncidentDriverId(Number(value))}
@@ -470,44 +560,31 @@ export default function TripChangesPage() {
                                         placeholder={!incidentTripId
                                             ? "Chọn chuyến trước"
                                             : isLoadingIncidentDrivers
-                                                ? "Đang tải tài xế..."
-                                                : "Chọn tài xế khả dụng"}
+                                                ? "Đang tải danh sách..."
+                                                : "— Chọn tài xế khả dụng —"}
                                     />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {incidentDrivers.map((driver) => (
                                         <SelectItem key={driver.id} value={String(driver.id)}>
-                                            {driver.fullName} - {driver.phone || "Không có SĐT"}
+                                            {driver.fullName} — {driver.phone || "N/A"}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-1.5 sm:col-span-2">
-                            <p className="text-xs font-medium text-gray-600">Loại sự cố</p>
-                            <Select value={incidentType} onValueChange={setIncidentType}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn loại sự cố" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {INCIDENT_TYPE_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-1.5 sm:col-span-2">
-                            <p className="text-xs font-medium text-gray-600">GPS (không bắt buộc)</p>
+                            <p className="text-xs font-medium text-gray-600">Tọa độ GPS xảy ra sự cố</p>
                             <Input
-                                placeholder="Ví dụ: 10.762622,106.660172"
+                                placeholder="VD: 10.0365, 105.7838 (Quốc lộ 1A, Cần Thơ)"
                                 value={incidentGps}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIncidentGps(e.target.value)}
                             />
                         </div>
                         <div className="space-y-1.5 sm:col-span-2">
-                            <p className="text-xs font-medium text-gray-600">Lý do sự cố</p>
+                            <p className="text-xs font-medium text-gray-600">Mô tả diễn biến sự cố <span className="text-red-500">*</span></p>
                             <Textarea
-                                placeholder="Mô tả ngắn gọn tình huống xảy ra sự cố..."
+                                placeholder="Mô tả chi tiết: Thời điểm, vị trí, tình trạng tài xế/xe, biện pháp xử lý tại chỗ..."
                                 rows={3}
                                 value={incidentReason}
                                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setIncidentReason(e.target.value)}
@@ -516,7 +593,7 @@ export default function TripChangesPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIncidentDialogOpen(false)}>
-                            Hủy
+                            Hủy bỏ
                         </Button>
                         <Button
                             onClick={handleSubmitIncident}
@@ -526,7 +603,7 @@ export default function TripChangesPage() {
                             {incidentMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
                             ) : null}
-                            Gửi sự cố
+                            Xác nhận & Gửi biên bản
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -544,16 +621,30 @@ export default function TripChangesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => currentUser?.id && resetAntiSpamMutation.mutate(currentUser.id)}
+                        disabled={resetAntiSpamMutation.isPending}
+                        className="bg-white border-gray-200 text-gray-700 hover:bg-gray-50 h-[42px]"
+                    >
+                        {resetAntiSpamMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                            <RefreshCw className="h-4 w-4 mr-2 text-indigo-500" />
+                        )}
+                        Reset Cooldown
+                    </Button>
+                    <Button
                         onClick={() => setIncidentDialogOpen(true)}
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        className="bg-orange-600 hover:bg-orange-700 text-white h-[42px]"
                     >
                         <AlertTriangle className="h-4 w-4 mr-1" />
-                        Báo sự cố
+                        Lập biên bản sự cố
                     </Button>
                     <button
                         onClick={() => refetch()}
                         disabled={isLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 h-[42px]"
                     >
                         <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                         Làm mới
@@ -608,10 +699,10 @@ export default function TripChangesPage() {
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100">
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Ngày tạo</th>
-                                <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Loại</th>
+                                <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Loại thay đổi</th>
+                                <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Nội dung</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Vùng TG</th>
                                 <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Lý do</th>
-                                <th className="text-left py-3.5 px-4 font-semibold text-gray-600">Người yêu cầu</th>
                                 <th className="text-center py-3.5 px-4 font-semibold text-gray-600">Trạng thái</th>
                                 <th className="text-center py-3.5 px-4 font-semibold text-gray-600">Thao tác</th>
                             </tr>
@@ -636,6 +727,7 @@ export default function TripChangesPage() {
                                     const statusCfg = STATUS_CONFIG[req.status] || STATUS_CONFIG.PENDING;
                                     const StatusIcon = statusCfg.icon;
                                     const zoneCfg = ZONE_CONFIG[req.urgencyZone];
+                                    const isCancelled = req.status === "CANCELLED";
                                     const isPending = req.status === "PENDING";
                                     const isApproved = req.status === "APPROVED";
                                     const isAutoExecuteZone = ["CRITICAL", "DEPARTED", "MID_ROUTE"].includes(req.urgencyZone);
@@ -644,8 +736,11 @@ export default function TripChangesPage() {
 
                                     return (
                                         <tr key={req.id} className={cn(
-                                            "hover:bg-gray-50/50 transition-colors",
-                                            isPending ? "bg-amber-50/20" : ""
+                                            "hover:bg-gray-50/50 transition-all duration-200 border-l-4",
+                                            isPending && "bg-amber-50/30 border-l-amber-300",
+                                            isApproved && "bg-green-50/10 border-l-green-300",
+                                            isCancelled && "bg-purple-50/40 border-l-purple-400 opacity-75",
+                                            !isPending && !isApproved && !isCancelled && "border-l-transparent"
                                         )}>
                                             {/* Ngày tạo */}
                                             <td className="py-3.5 px-4">
@@ -659,10 +754,30 @@ export default function TripChangesPage() {
 
                                             {/* Loại thay đổi */}
                                             <td className="py-3.5 px-4">
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-700">
-                                                    <ArrowLeftRight className="h-3 w-3" />
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                                    {req.changeType === "REPLACE_BUS" ? <BusIcon className="h-3 w-3" /> : <User2 className="h-3 w-3" />}
                                                     {CHANGE_TYPE_LABELS[req.changeType] || req.changeType}
                                                 </span>
+                                            </td>
+
+                                            {/* Nội dung thay đổi */}
+                                            <td className="py-3.5 px-4">
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-gray-400 line-through truncate max-w-[100px]">
+                                                            {req.changeType === "REPLACE_BUS" ? req.licensePlate : (req.oldDriverName || "Chưa có")}
+                                                        </span>
+                                                        <span className="text-blue-600 font-semibold truncate max-w-[100px]">
+                                                            {req.changeType === "REPLACE_BUS" ? "Xe mới" : (req.newDriverName || "Chưa chọn")}
+                                                        </span>
+                                                    </div>
+                                                    {isCancelled && (
+                                                        <div className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded border border-purple-100 flex items-center gap-1">
+                                                            <RotateCcw className="h-2.5 w-2.5" />
+                                                            Đã lùi
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             {/* Vùng thời gian */}
@@ -692,8 +807,11 @@ export default function TripChangesPage() {
 
                                             {/* Người yêu cầu */}
                                             <td className="py-3.5 px-4">
-                                                <span className="text-gray-700 font-medium text-xs">
-                                                    {req.createdBy ? `User #${req.createdBy}` : "—"}
+                                                <span className="text-gray-700 font-medium text-xs block">
+                                                    {req.createdBy ? `Admin #${req.createdBy}` : "Hệ thống"}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400 uppercase">
+                                                    {req.routeName || "—"}
                                                 </span>
                                             </td>
 
@@ -754,15 +872,23 @@ export default function TripChangesPage() {
                                                         </button>
                                                     </div>
                                                 ) : isApproved ? (
-                                                    <div className="flex items-center justify-center gap-1">
+                                                    <div className="flex items-center justify-center">
                                                         <button
                                                             onClick={() => handleRollback(req)}
                                                             disabled={rollbackMutation.isPending}
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors disabled:opacity-50"
+                                                            title="Hoàn tác thay đổi này — khôi phục nhân sự gốc ban đầu"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 hover:border-purple-300 transition-colors disabled:opacity-50 shadow-sm"
                                                         >
-                                                            <ArrowLeftRight className="h-3 w-3" />
+                                                            <RotateCcw className="h-3.5 w-3.5" />
                                                             Hoàn tác
                                                         </button>
+                                                    </div>
+                                                ) : isCancelled ? (
+                                                    <div className="flex items-center justify-center">
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-100 text-purple-600 border border-purple-200">
+                                                            <RotateCcw className="h-3 w-3" />
+                                                            Đã hoàn tác
+                                                        </span>
                                                     </div>
                                                 ) : (
                                                     <span className="text-xs text-gray-400">—</span>

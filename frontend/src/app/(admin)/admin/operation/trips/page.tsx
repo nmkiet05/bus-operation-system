@@ -743,7 +743,7 @@ export default function TripListPage() {
                                                 <div className="flex items-center justify-center gap-1">
                                                     {/* View Detail */}
                                                     <button
-                                                        onClick={() => handleViewDetail(trip)}
+                                                        onClick={(e) => { e.stopPropagation(); handleViewDetail(trip); }}
                                                         className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
                                                         title="Xem chi tiết"
                                                     >
@@ -759,7 +759,7 @@ export default function TripListPage() {
 
                                                     {canApprove && (
                                                         <button
-                                                            onClick={() => handleApprove(trip)}
+                                                            onClick={(e) => { e.stopPropagation(); handleApprove(trip); }}
                                                             disabled={approveMutation.isPending}
                                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
                                                         >
@@ -769,7 +769,7 @@ export default function TripListPage() {
                                                     )}
                                                     {canStart && (
                                                         <button
-                                                            onClick={() => handleStart(trip)}
+                                                            onClick={(e) => { e.stopPropagation(); handleStart(trip); }}
                                                             disabled={startMutation.isPending}
                                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
                                                         >
@@ -779,7 +779,7 @@ export default function TripListPage() {
                                                     )}
                                                     {canComplete && (
                                                         <button
-                                                            onClick={() => handleComplete(trip)}
+                                                            onClick={(e) => { e.stopPropagation(); handleComplete(trip); }}
                                                             disabled={completeMutation.isPending}
                                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
                                                         >
@@ -789,7 +789,7 @@ export default function TripListPage() {
                                                     )}
                                                     {canCancel && (
                                                         <button
-                                                            onClick={() => handleCancel(trip)}
+                                                            onClick={(e) => { e.stopPropagation(); handleCancel(trip); }}
                                                             disabled={cancelMutation.isPending}
                                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
                                                         >
