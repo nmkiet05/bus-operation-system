@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { User, HelpCircle, ChevronDown, Search } from "lucide-react";
+import { User, HelpCircle, ChevronDown } from "lucide-react";
 import { LoginDrawer } from "@/features/auth/components";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
@@ -212,18 +212,6 @@ function HeaderContent() {
 
           {/* --- RIGHT: ACTIONS --- */}
           <div className="flex items-center gap-1 xl:gap-4">
-
-            {/* Tra cứu vé */}
-            <Link
-              href="/booking/lookup"
-              className={cn(
-                "hidden xl:flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors",
-                isWhiteMode ? "text-gray-700 hover:bg-gray-100" : "text-white/90 hover:bg-white/10"
-              )}
-            >
-              <Search className="h-4 w-4" />
-              <span>Tra cứu vé</span>
-            </Link>
 
             {/* Hỗ trợ */}
             <button className={cn(
