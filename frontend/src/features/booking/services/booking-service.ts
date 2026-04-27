@@ -80,6 +80,36 @@ class BookingService {
     }
 
     /**
+     * Lấy chi tiết 1 booking của user hiện tại theo mã
+     */
+    async getMyBookingByCode(code: string): Promise<BookingResponse> {
+        const response = await axiosInstance.get<ApiResponse<BookingResponse>>(
+            `/me/bookings/${code}`
+        );
+        return response.data.result;
+    }
+
+    /**
+     * User hiện tại hủy booking của chính mình
+     */
+    async cancelMyBooking(code: string): Promise<BookingResponse> {
+        const response = await axiosInstance.post<ApiResponse<BookingResponse>>(
+            `/me/bookings/${code}/cancel`
+        );
+        return response.data.result;
+    }
+
+    /**
+     * User hiện tại hủy 1 vé trong booking của chính mình
+     */
+    async cancelMyTicket(code: string, ticketId: number): Promise<BookingResponse> {
+        const response = await axiosInstance.post<ApiResponse<BookingResponse>>(
+            `/me/bookings/${code}/tickets/${ticketId}/cancel`
+        );
+        return response.data.result;
+    }
+
+    /**
      * Tra cứu vé public (mã PNR + SĐT)
      */
     async searchBooking(code: string, phone: string): Promise<BookingResponse> {

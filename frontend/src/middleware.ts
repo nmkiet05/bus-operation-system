@@ -5,9 +5,9 @@ export function middleware(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
     const { pathname } = request.nextUrl;
 
-    // 1. Protected Routes (Dashboard + Admin + Driver Portal)
+    // 1. Protected Routes (Account bookings + Admin + Driver Portal)
     if (
-        pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/bookings") ||
         pathname.startsWith("/profile") ||
         pathname.startsWith("/admin") ||
         pathname.startsWith("/driver")
@@ -30,5 +30,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/dashboard/:path*", "/profile/:path*", "/admin/:path*", "/driver/:path*", "/login", "/register"],
+    matcher: ["/bookings/:path*", "/profile/:path*", "/admin/:path*", "/driver/:path*", "/login", "/register"],
 };

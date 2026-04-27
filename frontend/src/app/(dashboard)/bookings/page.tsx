@@ -11,14 +11,17 @@ import { Button } from "@/components/ui/button";
 export default function BookingsPage() {
     const [bookings, setBookings] = useState<BookingResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchBookings = async () => {
             try {
+                setError(null);
                 const data = await bookingService.getMyBookings();
                 setBookings(data);
             } catch (error) {
                 console.error("Failed to fetch bookings:", error);
+                setError("Không thể tải lịch sử đặt vé của bạn");
             } finally {
                 setLoading(false);
             }
@@ -43,6 +46,12 @@ export default function BookingsPage() {
             </div>
 
             <div className="p-6">
+                {error && (
+                    <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                        {error}
+                    </div>
+                )}
+
                 {bookings.length === 0 ? (
                     <div className="text-center py-12">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -50,7 +59,7 @@ export default function BookingsPage() {
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">Bạn chưa có chuyến đi nào</h3>
                         <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-                            Hãy đặt vé ngay để trải nghiệm những chuyến đi tuyệt vời cùng Vexere Clone.
+                            Hãy đặt vé ngay để trải nghiệm những chuyến đi tuyệt vời cùng BOS.
                         </p>
                         <Button asChild>
                             <Link href="/">Tìm chuyến xe</Link>
@@ -59,10 +68,12 @@ export default function BookingsPage() {
                 ) : (
                     <div className="space-y-4">
                         {bookings.map((booking) => (
-                            <div
+                            <Link
                                 key={booking.id}
-                                className="border border-gray-200 rounded-xl p-4 hover:border-brand-blue/50 transition-colors flex flex-col md:flex-row gap-4"
+                                href={`/bookings/${booking.code}`}
+                                className="block border border-gray-200 rounded-xl p-4 hover:border-brand-blue/50 hover:bg-blue-50/20 transition-colors"
                             >
+                                <div className="flex flex-col md:flex-row gap-4">
                                 <div className="flex-1 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -72,7 +83,6 @@ export default function BookingsPage() {
                                                 {format(new Date(booking.createdAt), "dd/MM/yyyy HH:mm")}
                                             </span>
                                         </div>
-                                        {/* Status Badge */}
                                         <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${booking.status === "CONFIRMED" ? "bg-emerald-100 text-emerald-700" :
                                             booking.status === "PENDING" ? "bg-amber-100 text-amber-700" :
                                                 booking.status === "CANCELLED" ? "bg-red-100 text-red-700" :
@@ -83,10 +93,6 @@ export default function BookingsPage() {
                                                     booking.status === "CANCELLED" ? "Đã hủy" : booking.status}
                                         </div>
                                     </div>
-
-                                    {/* Trip Details (Mocked mostly because BookingResponse might lack full Trip info, checking types...) */}
-                                    {/* Wait, BookingResponse has Tickets. Tickets have Trip info if mocked/mapped correctly? */}
-                                    {/* Let's assume Booking -> Tickets[0] -> Trip info is available or at least route name */}
 
                                     <div className="flex items-start gap-3">
                                         <div className="mt-0.5">
@@ -130,17 +136,14 @@ export default function BookingsPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col justify-center gap-2 border-t md:border-t-0 md:border-l border-gray-100 md:pl-4 pt-4 md:pt-0">
-                                    <Button variant="outline" size="sm" asChild>
-                                        <Link href={`/booking/success?code=${booking.code}`}>Chi tiết</Link>
-                                    </Button>
-                                    {booking.status === "PENDING" && (
-                                        <Button size="sm" className="bg-brand-blue hover:bg-brand-blue/90">
-                                            Thanh toán
-                                        </Button>
-                                    )}
+                                <div className="flex flex-col justify-center gap-2 border-t md:border-t-0 md:border-l border-gray-100 md:pl-4 pt-4 md:pt-0 min-w-[170px]">
+                                    <div className="text-sm font-semibold text-brand-blue">Xem chi tiết</div>
+                                    <p className="text-xs text-gray-500 leading-relaxed">
+                                        Nhấp để mở giao diện chi tiết và thao tác hủy booking hoặc hủy từng vé.
+                                    </p>
                                 </div>
-                            </div>
+                                </div>
+                            </Link>
                         ))}
                     </div>
                 )}

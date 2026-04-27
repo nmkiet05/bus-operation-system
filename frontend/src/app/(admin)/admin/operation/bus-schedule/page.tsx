@@ -285,6 +285,7 @@ export default function BusSchedulePage() {
         onSuccess: () => {
             toast.success("Đã kết thúc ca xe sớm!");
             queryClient.invalidateQueries({ queryKey: ["bus-assignments"] });
+            queryClient.invalidateQueries({ queryKey: ["unassigned-trips"] });
         },
         onError: (error: unknown) => {
             toast.error(parseFriendlyError(error, "Lỗi kết thúc sớm"));
@@ -723,7 +724,14 @@ export default function BusSchedulePage() {
     return (
         <div className="space-y-6">
             {/* Create Dialog */}
-            <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setSelectedCreateTrips([]); }}>
+            <Dialog open={createOpen} onOpenChange={(open) => {
+                setCreateOpen(open);
+                if (!open) {
+                    setSelectedCreateTrips([]);
+                    setCreateDepFilter("");
+                    setCreateArrFilter("");
+                }
+            }}>
                 <DialogContent className="!max-w-[1160px] p-0 overflow-hidden bg-white">
                     <DialogHeader className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                         <DialogTitle className="flex items-center gap-2 text-lg">

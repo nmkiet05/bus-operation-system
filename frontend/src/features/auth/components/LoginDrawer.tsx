@@ -124,7 +124,7 @@ export function LoginDrawer({ children }: { children: React.ReactNode }) {
                                     Tài khoản của tôi
                                 </h4>
                                 <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-                                    <button onClick={() => handleNavigate("/booking/lookup")} className="group flex w-full items-center justify-between border-b border-gray-100 p-4 transition-colors hover:bg-gray-50">
+                                    <button onClick={() => handleNavigate("/bookings")} className="group flex w-full items-center justify-between border-b border-gray-100 p-4 transition-colors hover:bg-gray-50">
                                         <div className="flex items-center gap-3">
                                             <Ticket className="h-4 w-4 text-[#0EA5E9]" />
                                             <span className="font-medium text-gray-700 group-hover:text-gray-900">Vé của tôi</span>

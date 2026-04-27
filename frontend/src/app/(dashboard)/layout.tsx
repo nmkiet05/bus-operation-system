@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Ticket, Lock, LogOut } from "lucide-react";
+import { Ticket, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
@@ -14,19 +14,9 @@ export default function DashboardLayout({
 
     const menuItems = [
         {
-            title: "Thông tin tài khoản",
-            href: "/dashboard/profile", // Placeholder
-            icon: User,
-        },
-        {
             title: "Lịch sử đặt vé",
-            href: "/dashboard/bookings",
+            href: "/bookings",
             icon: Ticket,
-        },
-        {
-            title: "Đổi mật khẩu",
-            href: "/dashboard/password", // Placeholder
-            icon: Lock,
         },
     ];
 
