@@ -1,6 +1,6 @@
 # 🚌 Bus Operation System (BOS)
 
-> **Enterprise-grade intercity bus management platform** — digitizing fleet operations, real-time dispatching, ticket sales, and revenue analytics for bus transportation companies.
+> **Nền tảng quản trị hệ thống xe khách chuyên nghiệp (Enterprise-grade)** — Số hóa quá trình vận hành đội xe, điều phối khẩn cấp thời gian thực, bán vé chống trùng lặp và phân tích doanh thu.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
@@ -13,42 +13,42 @@
 
 ---
 
-## 📋 Table of Contents
+## 📋 Mục lục
 
-- [Overview](#-overview)
-- [System Architecture](#-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Backend Modules](#-backend-modules)
-- [Frontend — 3-Portal Architecture](#-frontend--3-portal-architecture)
-- [Key Engineering Highlights](#-key-engineering-highlights)
-- [Database Design](#-database-design)
-- [Getting Started](#-getting-started)
-- [API Documentation](#-api-documentation)
-- [Project Structure](#-project-structure)
-
----
-
-## 🎯 Overview
-
-BOS is a full-stack, production-ready system that covers the **complete lifecycle** of a bus transportation business:
-
-1. **Fleet Management** — Vehicle registration, insurance tracking, seat map configuration (JSONB)
-2. **Route Planning** — Route definition, schedule templates with bitwise day-of-week encoding
-3. **Trip Operations** — Automated daily trip generation, driver/bus assignment with conflict detection
-4. **Emergency Dispatching** — 5-zone urgency classification for real-time trip change management
-5. **Ticket Sales** — E-commerce checkout flow with seat reservation, QR payment, and refund processing
-6. **Revenue Analytics** — BI dashboards with dynamic seat-class revenue breakdown and load-factor KPIs
+- [Tổng quan](#-tổng-quan)
+- [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
+- [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
+- [Các Module Backend](#-các-module-backend)
+- [Kiến trúc Frontend — 3 Cổng Thông Tin](#-kiến-trúc-frontend--3-cổng-thông-tin)
+- [Điểm nhấn Kỹ thuật Kỹ sư](#-điểm-nhấn-kỹ-thuật-kỹ-sư)
+- [Thiết kế Cơ sở dữ liệu](#-thiết-kế-cơ-sở-dữ-liệu)
+- [Hướng dẫn Cài đặt](#-hướng-dẫn-cài-đặt)
+- [Tài liệu API](#-tài-liệu-api)
+- [Cấu trúc Dự án](#-cấu-trúc-dự-án)
 
 ---
 
-## 🏗 System Architecture
+## 🎯 Tổng quan
 
-```
+BOS là một hệ thống full-stack, chuẩn production, bao quát **toàn bộ vòng đời** của một doanh nghiệp vận tải hành khách:
+
+1. **Quản lý Đội xe (Fleet)** — Đăng ký phương tiện, theo dõi bảo hiểm, cấu hình sơ đồ ghế động (JSONB).
+2. **Kế hoạch Tuyến (Planning)** — Định nghĩa tuyến đường, mẫu lịch chạy áp dụng theo hệ cơ số nhị phân (bitwise day-of-week).
+3. **Vận hành Chuyến (Operations)** — Tự động sinh chuyến xe hàng ngày, phân công tài xế/xe và phát hiện xung đột lịch trình.
+4. **Điều phối Khẩn cấp (Dispatching)** — Phân loại 5 cấp độ khẩn cấp (5-Zone) để xử lý thay đổi sự cố theo thời gian thực.
+5. **Bán Vé (Sales)** — Luồng thanh toán e-commerce giữ chỗ, thanh toán QR, và xử lý hoàn tiền.
+6. **Báo cáo Doanh thu (Analytics)** — Bảng điều khiển BI (Business Intelligence) phân tích doanh thu và hệ số lấp đầy (Load-factor) theo hạng ghế.
+
+---
+
+## 🏗 Kiến trúc hệ thống
+
+```text
 ┌──────────────────────────────────────────────────────────┐
-│                     CLIENT LAYER                         │
+│                     TẦNG CLIENT                          │
 │  ┌──────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │  Admin   │  │   Driver     │  │   Public Booking   │  │
-│  │  Portal  │  │   Portal     │  │   Portal           │  │
+│  │  Cổng    │  │   Cổng       │  │   Cổng Đặt Vé      │  │
+│  │ Quản Trị │  │   Tài Xế     │  │   (Khách Hàng)     │  │
 │  │ (Desktop)│  │  (Mobile)    │  │   (Responsive)     │  │
 │  └────┬─────┘  └──────┬───────┘  └─────────┬──────────┘  │
 │       │               │                    │             │
@@ -57,7 +57,7 @@ BOS is a full-stack, production-ready system that covers the **complete lifecycl
 └───────────────────────┼──────────────────────────────────┘
                         │ REST API (JWT Auth)
 ┌───────────────────────┼──────────────────────────────────┐
-│                 BACKEND LAYER                            │
+│                 TẦNG BACKEND                             │
 │          Spring Boot 3.4 — Modular Monolith              │
 │  ┌─────────┬──────────┬──────────┬──────────┬─────────┐  │
 │  │Identity │  Fleet   │Planning  │Operation │  Sales  │  │
@@ -76,261 +76,107 @@ BOS is a full-stack, production-ready system that covers the **complete lifecycl
 
 ---
 
-## 🛠 Tech Stack
+## 🛠 Công nghệ sử dụng
 
 ### Backend
-| Technology | Purpose |
+| Công nghệ | Mục đích |
 |:--|:--|
-| **Java 21** | Core language with modern features |
-| **Spring Boot 3.4** | REST API framework |
-| **Spring Security + JWT** | Stateless authentication & RBAC |
-| **Spring Data JPA** | ORM with Hibernate 6 |
-| **QueryDSL 5** | Type-safe dynamic query builder |
-| **Flyway** | Database version control & migrations |
-| **Redisson** | Distributed locking for concurrent seat booking |
-| **Springdoc OpenAPI** | Auto-generated Swagger UI |
-| **Lombok** | Boilerplate reduction |
-| **Hypersistence Utils** | Advanced Hibernate types (JSONB mapping) |
+| **Java 21** | Ngôn ngữ lõi với các tính năng hiện đại |
+| **Spring Boot 3.4** | Framework xây dựng REST API |
+| **Spring Security + JWT** | Xác thực phi trạng thái & Phân quyền RBAC |
+| **Spring Data JPA** | ORM (Hibernate 6) |
+| **QueryDSL 5** | Trình tạo truy vấn động an toàn kiểu (Type-safe) |
+| **Flyway** | Quản lý phiên bản Database (Migrations) |
+| **Redisson** | Khóa phân tán (Distributed locking) chống trùng vé |
+| **Springdoc OpenAPI** | Tự động tạo giao diện tài liệu Swagger UI |
+| **Hypersistence Utils** | Hỗ trợ ánh xạ kiểu dữ liệu JSONB trong Hibernate |
 
 ### Frontend
-| Technology | Purpose |
+| Công nghệ | Mục đích |
 |:--|:--|
-| **Next.js 15** | React framework with SSR/SSG |
-| **TypeScript** | Type-safe development |
-| **Tailwind CSS 3** | Utility-first styling |
-| **Radix UI + shadcn/ui** | Accessible component library |
-| **TanStack React Query** | Server state management & caching |
-| **Recharts** | Revenue & load-factor chart visualization |
-| **Framer Motion** | Smooth UI animations |
-| **React Hook Form + Zod** | Form handling with schema validation |
-| **Axios** | HTTP client with interceptors |
-
-### Infrastructure
-| Technology | Purpose |
-|:--|:--|
-| **Docker Compose** | Multi-service orchestration (5 containers) |
-| **PostgreSQL 15** | Primary database with JSONB, CTE, Partial Indexes |
-| **Redis** | Distributed lock & session cache |
-| **PgAdmin 4** | Database management UI |
+| **Next.js 15** | React framework hỗ trợ SSR/SSG |
+| **TypeScript** | Đảm bảo an toàn kiểu dữ liệu |
+| **Tailwind CSS 3** | Căn chỉnh CSS tiện ích cực nhanh |
+| **Radix UI + shadcn/ui** | Thư viện Component với tính truy cập cao |
+| **TanStack React Query** | Quản lý trạng thái server & Caching |
+| **Recharts** | Trực quan hóa dữ liệu biểu đồ doanh thu |
+| **Framer Motion** | Tạo hiệu ứng Animation mượt mà |
+| **React Hook Form + Zod** | Xử lý Form và validate dữ liệu chặt chẽ |
 
 ---
 
-## 📦 Backend Modules
+## 📦 Các Module Backend
 
-The backend follows a **Modular Monolith** architecture — 11 domain modules with clear boundaries:
+Backend tuân thủ kiến trúc **Modular Monolith** — chia làm 11 domain module với ranh giới rõ ràng:
 
-```
+```text
 com.bus.system.modules
-├── identity/      → JWT auth, RBAC (ADMIN/STAFF/DRIVER/CUSTOMER)
-├── catalog/       → Provinces, bus stations, ticket offices, depots
-├── fleet/         → Bus types, vehicles, seat map (JSONB), insurance tracking
-├── hr/            → Driver profiles, license validation, driving-hour compliance
-├── planning/      → Routes, trip schedules, bitwise day-of-week config
-├── pricing/       → Fare config, holiday surcharge policies (JSONB conditions)
-├── operation/     → Trip generation, driver/bus assignment, 5-zone emergency dispatch
-├── sales/         → Seat reservation, booking lifecycle, ticket issuance, refunds
-├── payment/       → Payment gateway integration (VNPAY/MoMo QR)
-├── reports/       → Revenue analytics, load-factor KPIs (CTE + Native SQL)
-└── system/        → System configs, audit logging
+├── identity/      → Xác thực JWT, RBAC đa cấp độ (ADMIN/STAFF/DRIVER/CUSTOMER)
+├── catalog/       → Quản lý danh mục: Tỉnh thành, bến xe, quầy vé, bãi đỗ
+├── fleet/         → Loại xe, phương tiện, sơ đồ ghế (JSONB), theo dõi hạn đăng kiểm
+├── hr/            → Hồ sơ tài xế, xác thực bằng lái
+├── planning/      → Tuyến đường, mẫu lịch chạy sử dụng Bitwise Day-of-Week
+├── pricing/       → Cấu hình giá, chính sách phụ thu lễ tết (JSONB logic)
+├── operation/     → Sinh chuyến bay, phân công tài xế, điều phối khẩn cấp 5 cấp độ
+├── sales/         → Giữ chỗ, vòng đời đơn hàng, xuất vé, hoàn vé
+├── payment/       → Tích hợp cổng thanh toán (QR Code)
+├── reports/       → Phân tích doanh thu, hệ số lấp đầy (CTE + Native SQL)
+└── system/        → Cấu hình hệ thống, nhật ký Audit
 ```
 
 ---
 
-## 🖥 Frontend — 3-Portal Architecture
+## ⚡ Điểm nhấn Kỹ thuật Kỹ sư
 
-The frontend is split into **3 independent portals**, each optimized for its target audience:
+### 1. Xử lý Đồng thời (Concurrency Control) — Tránh bán trùng ghế (Double-booking)
+- **Vấn đề:** Hai người dùng chọn cùng một ghế tại cùng một microsecond.
+- **Giải pháp:** Sử dụng **Redis Distributed Lock (Redisson)** kết hợp Khóa lạc quan **Optimistic Locking (`@Version`)**.
+- Redis Lock tạo một hàng rào chặn việc ghi đè tại mức Database, trong khi `@Version` trên bảng `ticket` làm lưới an toàn dự phòng.
 
-### 1. 🏢 Management Portal `/(admin)`
-- **Users:** Admin & Staff (desktop-optimized)
-- **Features:** Fleet management, route planning, trip scheduling, 5-zone emergency dispatch center, fare configuration, revenue dashboards with Recharts
+### 2. Hệ thống Điều phối Sự cố Khẩn cấp (5-Zone Emergency Dispatch)
+Điều phối thay đổi tài xế/xe theo thời gian thực dựa trên thời gian còn lại đến lúc khởi hành:
+- **Z1 (Chuẩn)**: > 60 phút
+- **Z2 (Khẩn cấp)**: 15 - 60 phút
+- **Z3 (Nguy cấp)**: < 15 phút (Buộc phải leo thang cảnh báo ngay)
+- **Z4 (Đã xuất bến)**: Xe đang chạy, yêu cầu cứu hộ giữa đường.
 
-### 2. 🚗 Driver Portal `/(driver)`
-- **Users:** Drivers only (mobile-first design)
-- **Features:** Today's trip view, vehicle handover forms (odometer + fuel), mid-route incident reporting
+### 3. Tối ưu Báo Cáo Hiệu Suất Cao (High-Performance Reporting)
+- Bỏ qua ORM truyền thống (gây lỗi N+1 Queries) để dùng **PostgreSQL CTEs (Common Table Expressions)**.
+- Gộp (Aggregate) dữ liệu doanh thu trực tiếp tại tầng Database, giảm thiểu độ trễ truy vấn từ vài giây xuống còn **~15ms** cho dữ liệu 6 tháng.
 
-### 3. 🎫 Booking Portal `/(public)`
-- **Users:** All visitors (responsive e-commerce UX)
-- **Features:** Trip search with autocomplete, interactive 2-deck seat map, shopping cart, QR payment with 10-min countdown timer, booking history
-
----
-
-## ⚡ Key Engineering Highlights
-
-### Concurrency Control — Seat Booking Race Condition
-```
-Problem: Two users selecting the same seat simultaneously
-Solution: Redis Distributed Lock (Redisson) + Optimistic Locking (@Version)
-```
-- **Redis lock** prevents concurrent writes to the same seat
-- **@Version column** on `ticket` table catches any remaining race conditions
-- `ObjectOptimisticLockingFailureException` → user-friendly "Seat already taken" message
-
-### 5-Zone Emergency Trip Change System
-Real-time trip change dispatching based on time-to-departure:
-| Zone | Time Window | Urgency | Action |
-|:--|:--|:--|:--|
-| Z1 | T > 60 min | STANDARD | Normal reassignment |
-| Z2 | 15 ≤ T ≤ 60 min | URGENT | Priority queue |
-| Z3 | T < 15 min | CRITICAL | Immediate escalation |
-| Z4 | Departed | DEPARTED | Mid-transit coordination |
-| Z5 | En route | MID_ROUTE | Emergency rescue dispatch |
-
-Implemented with **Strategy Pattern** (`TripChangeResolver`) for clean zone-specific logic.
-
-### High-Performance Reporting with CTE
-```sql
--- Revenue aggregation bypasses JPA N+1 problem
-WITH revenue_cte AS (
-  SELECT DATE_TRUNC(:granularity, b.booking_date) as date, ...
-  FROM bookings b JOIN trips t ON b.trip_id = t.id
-  GROUP BY date, bus_type, seat_class
-)
-SELECT * FROM revenue_cte ORDER BY date DESC;
-```
-- Database-side aggregation reduces network calls from dozens to **1 query**
-- Query time: **~5-15ms** for 6-month date ranges
-
-### Partial Unique Indexes for Soft-Delete
-```sql
-CREATE UNIQUE INDEX ticket_active_seat_idx 
-  ON ticket(trip_id, seat_number) 
-  WHERE status NOT IN ('CANCELLED', 'EXPIRED');
-```
-Enables seat reuse after cancellation without violating uniqueness constraints.
+### 4. Xóa Mềm với Partial Unique Indexes (Soft-Delete)
+- Tạo index duy nhất có điều kiện: `WHERE status NOT IN ('CANCELLED', 'EXPIRED')`.
+- Cho phép ghế đã bị hủy có thể được đặt lại bởi người khác mà không vi phạm ràng buộc Unique Constraint.
 
 ---
 
-## 🗄 Database Design
+## 🚀 Hướng dẫn Cài đặt & Chạy Thử
 
-**30+ tables** organized in 5 clusters with enterprise patterns:
-
-| Cluster | Tables | Key Features |
-|:--|:--|:--|
-| **Identity & HR** | `users`, `user_roles`, `driver_detail`, `staff_detail` | Multi-role RBAC, license tracking |
-| **Catalog** | `province`, `bus_station`, `depot`, `ticket_office` | Master data with soft-delete |
-| **Fleet & Planning** | `bus_type`, `bus`, `route`, `trip_schedule`, `fare_config` | JSONB seat maps, bitwise scheduling |
-| **Operations** | `trip`, `driver_assignment`, `bus_assignment`, `trip_change_request` | 5-zone dispatch, vehicle handover |
-| **Sales & Payments** | `booking`, `ticket`, `payment_history`, `refund_transactions` | Optimistic locking, partial indexes |
-
-**Advanced PostgreSQL Features Used:**
-- `JSONB` columns for flexible seat maps and policy conditions
-- Partial Unique Indexes for soft-delete compatibility
-- `Optimistic Locking` via `@Version` on critical tables
-- Auto-audit triggers (`log_audit_trail()`)
-- `CTE` (Common Table Expressions) for complex reporting queries
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
+### Yêu cầu
 - Docker & Docker Compose
 - Git
 
-### Quick Start (Docker)
+### Chạy cực nhanh bằng Docker
 
 ```bash
-# Clone the repository
-git clone https://github.com/<your-username>/bus-operation-system.git
+# Tải mã nguồn
+git clone https://github.com/nmkiet05/bus-operation-system.git
 cd bus-operation-system
 
-# Start all services (PostgreSQL, Redis, Backend, Frontend, PgAdmin)
+# Chạy tất cả các dịch vụ (PostgreSQL, Redis, Backend, Frontend)
 docker-compose up --build -d
-
-# Verify services are running
-docker ps
 ```
 
-### Access Points
-
-| Service | URL |
-|:--|:--|
-| **Frontend** | http://localhost:3000 |
-| **Backend API** | http://localhost:8080/api |
-| **Swagger UI** | http://localhost:8080/swagger-ui.html |
-| **PgAdmin** | http://localhost:5050 |
-
-### Default Credentials
-
-| Role | Username | Password |
-|:--|:--|:--|
-| Admin | `admin` | `root@123456` |
-
-### Local Development (Without Docker)
-
-```bash
-# Backend (requires Java 21, PostgreSQL 15, Redis)
-cd backend
-./mvnw spring-boot:run
-
-# Frontend (requires Node.js 24+)
-cd frontend
-npm install
-npm run dev
-```
+| Cổng / Dịch vụ | URL Truy cập | Tài khoản Mặc định |
+|---|---|---|
+| **Frontend** | `http://localhost:3000` | N/A |
+| **API Swagger** | `http://localhost:8080/swagger-ui.html` | `admin` / `root@123456` |
+| **PgAdmin DB** | `http://localhost:5050` | `admin@bos.com` / `Admin@123456` |
 
 ---
 
-## 📚 API Documentation
-
-Interactive API documentation is available via **Swagger UI** at:
-```
-http://localhost:8080/swagger-ui.html
-```
-
-### Core API Endpoints
-
-| Module | Endpoint | Description |
-|:--|:--|:--|
-| Auth | `POST /api/auth/login` | JWT authentication |
-| Fleet | `GET /api/fleet/buses` | Vehicle inventory |
-| Planning | `GET /api/planning/routes` | Route management |
-| Operation | `POST /api/operation/trips/generate` | Automated trip generation |
-| Sales | `POST /api/sales/bookings` | Create booking with seat reservation |
-| Reports | `GET /api/reports/revenue` | Revenue analytics with filters |
-| Reports | `GET /api/reports/load-factor` | Occupancy rate KPIs |
-
----
-
-## 📁 Project Structure
-
-```
-bus-operation-system/
-├── backend/
-│   ├── src/main/java/com/bus/system/
-│   │   ├── config/          # Security, CORS, Redis, QueryDSL config
-│   │   ├── common/          # Shared DTOs, exceptions, utilities
-│   │   └── modules/         # 11 domain modules (see above)
-│   ├── src/main/resources/
-│   │   ├── db/migration/    # Flyway SQL migrations
-│   │   ├── db/seed/         # Demo data seeding
-│   │   └── application.yml  # App configuration
-│   ├── Dockerfile
-│   └── pom.xml
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (admin)/     # Management Portal
-│   │   │   ├── (driver)/    # Driver Portal
-│   │   │   ├── (public)/    # Booking Portal
-│   │   │   └── (auth)/      # Login/Register
-│   │   ├── features/        # Feature-based modules
-│   │   ├── services/        # API clients & HTTP config
-│   │   └── middleware.ts     # Route-level RBAC guard
-│   ├── Dockerfile
-│   └── package.json
-├── docs/                    # Technical documentation
-├── docker-compose.yml       # Full-stack orchestration
-└── DEPLOYMENT.md            # Production deployment guide
-```
-
----
-
-## 📄 License
-
-This project was developed as a thesis project at **Can Tho University** — Faculty of Information Technology.
-
----
+## 📄 Bản quyền
+Dự án được phát triển dưới dạng Đồ án Tốt nghiệp (Thesis Project) tại **Trường Đại học Cần Thơ (Can Tho University)** — Khoa Công nghệ Thông tin và Truyền thông.
 
 <p align="center">
   <sub>Built with ☕ Java, ⚛️ React, and 🐘 PostgreSQL</sub>
