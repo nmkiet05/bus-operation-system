@@ -19,7 +19,6 @@ import {
     MapPin,
     Trash2,
     Pencil,
-    X,
 } from "lucide-react";
 import { BusAssignment, BusAssignmentTripSummary, Trip } from "@/features/admin/types";
 import {
@@ -394,10 +393,10 @@ export default function BusSchedulePage() {
     const createOverlapError = useMemo(() => detectOverlapInList(selectedCreateTrips), [selectedCreateTrips]);
 
     // Form Cập nhật: overlap giữa pendingEditTrips và trips đã gán
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const editOverlapError = useMemo(() => {
         const combined = [...(assignTarget?.trips || []) as Trip[], ...pendingEditTrips];
         return detectOverlapInList(combined);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pendingEditTrips, assignTarget]);
 
     // ── Helper: tính thời gian ca xe từ trips ± 30 phút ──
@@ -506,7 +505,7 @@ export default function BusSchedulePage() {
                 return f;
             });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [selectedCreateTrips, selectedDate]);
 
     // ── Auto-scale Update form khi thêm/bớt trip ──
@@ -552,7 +551,7 @@ export default function BusSchedulePage() {
     }, [pendingEditTrips, assignTarget]);
 
     // ── Kiểm tra thời gian user nhập có bị cấn không ──
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     const createTripsBoundError = useMemo(() => {
         return checkAssignmentCoversTrips(
             createForm.startDate, createForm.startTime,
@@ -561,7 +560,7 @@ export default function BusSchedulePage() {
         );
     }, [createForm.startDate, createForm.startTime, createForm.endDate, createForm.endTime, selectedCreateTrips, selectedDate]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     const editTripsBoundError = useMemo(() => {
         const allTrips = [...(assignTarget?.trips || []) as Trip[], ...pendingEditTrips];
         const assignDate = assignTarget?.scheduledStart
@@ -591,7 +590,7 @@ export default function BusSchedulePage() {
             }
         }
         return null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [createForm.busId, createForm.startDate, createForm.startTime, createForm.endDate, createForm.endTime, assignments]);
 
     const editBusOverlapWarning = useMemo(() => {
@@ -610,7 +609,7 @@ export default function BusSchedulePage() {
             }
         }
         return null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     }, [assignTarget, editForm.startDate, editForm.startTime, editForm.endDate, editForm.endTime, assignments]);
 
     const openEditDialog = (assignment: BusAssignment) => {

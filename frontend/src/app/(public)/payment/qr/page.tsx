@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, Clock, Loader2, XCircle, Smartphone } from "lucide-react";
 import { bookingService } from "@/features/booking/services/booking-service";
@@ -16,7 +16,6 @@ function QrPageContent() {
 
     const [status, setStatus] = useState<"waiting" | "confirmed" | "failed">("waiting");
     const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS);
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     let confirmUrl = "";
     if (typeof window !== "undefined") {
@@ -99,7 +98,7 @@ function QrPageContent() {
             if (timeoutId) clearTimeout(timeoutId);
             document.removeEventListener("visibilitychange", handleVisibility);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [code, router]);
 
     // Countdown — persist qua sessionStorage để không reset khi reload
@@ -123,7 +122,7 @@ function QrPageContent() {
             if (rem <= 0) { clearInterval(t); setStatus("failed"); }
         }, 1000);
         return () => clearInterval(t);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [code]);
 
     const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");

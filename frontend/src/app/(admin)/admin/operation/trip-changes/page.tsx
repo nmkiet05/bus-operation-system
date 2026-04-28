@@ -14,8 +14,7 @@ import {
     MessageSquare,
     RotateCcw,
     User2,
-    Bus as BusIcon,
-    ArrowRight
+    Bus as BusIcon
 } from "lucide-react";
 import {
     TripChangeRequest,
