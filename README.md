@@ -1,6 +1,6 @@
 # Bus Operation System (BOS)
 
-> **Enterprise-grade intercity bus management platform** — digitizing fleet operations, real-time dispatching, ticket sales, and revenue analytics for bus transportation companies.
+> **Enterprise-grade intercity bus management platform** — digitizing fleet operations, dynamic dispatching, ticket sales, and revenue analytics for bus transportation companies.
 
 <p align="center">
  <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
@@ -36,7 +36,7 @@ BOS is a full-stack, production-ready system that covers the **complete lifecycl
 1. **Fleet Management** — Vehicle registration, insurance tracking, seat map configuration (JSONB)
 2. **Route Planning** — Route definition, schedule templates with bitwise day-of-week encoding
 3. **Trip Operations** — Automated daily trip generation, driver/bus assignment with conflict detection
-4. **Emergency Dispatching** — 5-zone urgency classification for real-time trip change management
+4. **Emergency Dispatching** — 5-zone urgency classification for time-sensitive trip change management
 5. **Ticket Sales** — E-commerce checkout flow with seat reservation, QR payment, and refund processing
 6. **Revenue Analytics** — BI dashboards with dynamic seat-class revenue breakdown and load-factor KPIs
 
@@ -165,7 +165,7 @@ Solution: Redis Distributed Lock (Redisson) + Optimistic Locking (@Version)
 - `ObjectOptimisticLockingFailureException` → user-friendly "Seat already taken" message
 
 ### 5-Zone Emergency Trip Change System
-Real-time trip change dispatching based on time-to-departure:
+Dynamic trip change dispatching based on time-to-departure:
 | Zone | Time Window | Urgency | Action |
 |:--|:--|:--|:--|
 | Z1 | T > 60 min | STANDARD | Normal reassignment |
