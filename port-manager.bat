@@ -15,7 +15,7 @@ echo 4. Port 5050 (PgAdmin)
 echo 5. Custom Port
 echo 6. Exit
 echo.
-set /p choices="Select ports by number (space-separated, e.g. 1 2): "
+set /p choices="Select ports to check by number (space-separated, e.g. 1 2): "
 if "%choices%"=="" goto menu
 if "%choices%"=="6" exit
 
@@ -37,51 +37,9 @@ if "!TARGET_PORTS!"=="" (
     goto menu
 )
 
-:action_menu
-echo.
-echo Selected Ports:!TARGET_PORTS!
-echo.
-echo What do you want to do?
-echo 1. Check Status (View PID)
-echo 2. Kill Processes (Free Port)
-echo 3. Cancel / Back to Menu
-echo.
-set /p ACTION="Select action (1-3): "
-
-if "%ACTION%"=="1" goto check_ports
-if "%ACTION%"=="2" goto kill_ports
-if "%ACTION%"=="3" goto menu
-goto action_menu
-
-:check_ports
 cls
 echo ============================================
-echo   BOS - CHECKING PORTS:!TARGET_PORTS!
-echo ============================================
-echo.
-
-for %%P in (!TARGET_PORTS!) do (
-    set "process_found=0"
-    echo [Port %%P]
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%%P ^| findstr LISTENING') do (
-        set "process_found=1"
-        echo   - Status: IN USE (Listening)
-        echo   - PID   : %%a
-    )
-
-    if "!process_found!"=="0" (
-        echo   - Status: FREE (Not in use)
-    )
-    echo --------------------------------------------
-)
-echo.
-pause
-goto menu
-
-:kill_ports
-cls
-echo ============================================
-echo   BOS - KILLING PORTS:!TARGET_PORTS!
+echo   BOS - CHECKING PORTS: !TARGET_PORTS!
 echo ============================================
 echo.
 
@@ -89,16 +47,28 @@ for %%P in (!TARGET_PORTS!) do (
     set "process_found=0"
     for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%%P ^| findstr LISTENING') do (
         set "process_found=1"
-        echo Killing PID %%a on Port %%P...
-        taskkill /PID %%a /F >nul 2>&1
+        set "pid=%%a"
     )
 
     if "!process_found!"=="0" (
-        echo Port %%P is not in use.
+        echo [Port %%P] STATUS: FREE
+        echo   - Safe to start the system. No conflicts.
+        echo --------------------------------------------
     ) else (
-        echo Done! Port %%P is now free.
+        echo [Port %%P] STATUS: IN USE ^(PID: !pid!^)
+        echo   [WARNING] This port is currently busy!
+        echo   [WARNING] Starting the system now will cause a "Port Conflict" error.
+        
+        set /p kill_choice="Do you want to KILL this process to free the port? [Y/N]: "
+        if /I "!kill_choice!"=="Y" (
+            echo Killing PID !pid! on Port %%P...
+            taskkill /PID !pid! /F >nul 2>&1
+            echo Done! Port %%P is now FREE.
+        ) else (
+            echo Skipped. Port %%P is still IN USE.
+        )
+        echo --------------------------------------------
     )
-    echo --------------------------------------------
 )
 
 echo.
