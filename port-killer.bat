@@ -1,12 +1,27 @@
 @echo off
-:: BOS Port Killer Manager
-:: Quickly frees up locked ports during development.
+:: ======================================================================
+:: BOS PORT KILLER MANAGER
+:: ======================================================================
+:: HOW IT WORKS:
+:: 1. Uses `netstat -ano` to scan all active network connections.
+:: 2. Uses `findstr :PORT` to filter only the connections using the target port.
+:: 3. Uses `findstr LISTENING` to find the exact process holding the port open.
+:: 4. Extracts the Process ID (PID) from the 5th column of the netstat output.
+:: 5. Uses `taskkill /PID <PID> /F` to forcefully terminate the process.
+:: This is extremely useful when a Spring Boot or Next.js instance crashes
+:: but leaves the port bound in the background, preventing a restart.
+:: ======================================================================
 
 :menu
 cls
 echo ============================================
 echo      BOS - PORT KILLER MANAGER
 echo ============================================
+echo.
+echo What this tool does:
+echo - Scans for processes actively LISTENING on a specific port.
+echo - Extracts their Process ID (PID) and forcefully terminates them.
+echo - Frees up the port so you can restart your servers without "Port already in use" errors.
 echo.
 echo 1. Kill Port 3000 (Frontend Next.js)
 echo 2. Kill Port 8080 (Backend Spring Boot)
@@ -42,18 +57,19 @@ echo ============================================
 echo.
 
 set "process_found=0"
+echo [1/3] Scanning network connections for port %PORT_TO_KILL%...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%PORT_TO_KILL% ^| findstr LISTENING') do (
     set "process_found=1"
-    echo [INFO] Found process using port %PORT_TO_KILL% with PID %%a
-    echo Killing PID %%a ...
+    echo [2/3] Found LISTENING process. Extracted PID: %%a
+    echo [3/3] Sending forceful termination signal (taskkill /F) to PID %%a...
     taskkill /PID %%a /F >nul 2>&1
 )
 
 if "%process_found%"=="0" (
-    echo [INFO] No process is currently using port %PORT_TO_KILL%.
+    echo [INFO] No process is currently listening on port %PORT_TO_KILL%. The port is already free.
 ) else (
     echo.
-    echo [SUCCESS] Done! Port %PORT_TO_KILL% is now free.
+    echo [SUCCESS] The process has been terminated. Port %PORT_TO_KILL% is now free.
 )
 
 echo.
