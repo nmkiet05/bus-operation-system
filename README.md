@@ -1,19 +1,19 @@
-# 🚌 Bus Operation System (BOS)
+# Bus Operation System (BOS)
 
 > **Enterprise-grade intercity bus management platform** — digitizing fleet operations, real-time dispatching, ticket sales, and revenue analytics for bus transportation companies.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
-  <img src="https://img.shields.io/badge/Spring_Boot-3.4.1-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/PostgreSQL-15-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
-  <img src="https://img.shields.io/badge/Redis-Distributed_Lock-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
-  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+ <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
+ <img src="https://img.shields.io/badge/Spring_Boot-3.4.1-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" />
+ <img src="https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
+ <img src="https://img.shields.io/badge/PostgreSQL-15-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
+ <img src="https://img.shields.io/badge/Redis-Distributed_Lock-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+ <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
 </p>
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#-overview)
 - [System Architecture](#-system-architecture)
@@ -29,7 +29,7 @@
 
 ---
 
-## 🎯 Overview
+## Overview
 
 BOS is a full-stack, production-ready system that covers the **complete lifecycle** of a bus transportation business:
 
@@ -42,42 +42,42 @@ BOS is a full-stack, production-ready system that covers the **complete lifecycl
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                     CLIENT LAYER                         │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │  Admin   │  │   Driver     │  │   Public Booking   │  │
-│  │  Portal  │  │   Portal     │  │   Portal           │  │
-│  │ (Desktop)│  │  (Mobile)    │  │   (Responsive)     │  │
-│  └────┬─────┘  └──────┬───────┘  └─────────┬──────────┘  │
-│       │               │                    │             │
-│       └───────────────┼────────────────────┘             │
-│                       │ Next.js 15 (SSR + CSR)           │
+│ CLIENT LAYER │
+│ ┌──────────┐ ┌──────────────┐ ┌────────────────────┐ │
+│ │ Admin │ │ Driver │ │ Public Booking │ │
+│ │ Portal │ │ Portal │ │ Portal │ │
+│ │ (Desktop)│ │ (Mobile) │ │ (Responsive) │ │
+│ └────┬─────┘ └──────┬───────┘ └─────────┬──────────┘ │
+│ │ │ │ │
+│ └───────────────┼────────────────────┘ │
+│ │ Next.js 15 (SSR + CSR) │
 └───────────────────────┼──────────────────────────────────┘
-                        │ REST API (JWT Auth)
+ │ REST API (JWT Auth)
 ┌───────────────────────┼──────────────────────────────────┐
-│                 BACKEND LAYER                            │
-│          Spring Boot 3.4 — Modular Monolith              │
-│  ┌─────────┬──────────┬──────────┬──────────┬─────────┐  │
-│  │Identity │  Fleet   │Planning  │Operation │  Sales  │  │
-│  │  (Auth) │(Vehicles)│ (Routes) │(Dispatch)│(Tickets)│  │
-│  ├─────────┼──────────┼──────────┼──────────┼─────────┤  │
-│  │ Pricing │  Reports │ Catalog  │   HR     │ Payment │  │
-│  └─────────┴──────────┴──────────┴──────────┴─────────┘  │
+│ BACKEND LAYER │
+│ Spring Boot 3.4 — Modular Monolith │
+│ ┌─────────┬──────────┬──────────┬──────────┬─────────┐ │
+│ │Identity │ Fleet │Planning │Operation │ Sales │ │
+│ │ (Auth) │(Vehicles)│ (Routes) │(Dispatch)│(Tickets)│ │
+│ ├─────────┼──────────┼──────────┼──────────┼─────────┤ │
+│ │ Pricing │ Reports │ Catalog │ HR │ Payment │ │
+│ └─────────┴──────────┴──────────┴──────────┴─────────┘ │
 └──────────┬────────────────────────────┬──────────────────┘
-           │                            │
-    ┌──────┴──────┐              ┌──────┴──────┐
-    │ PostgreSQL  │              │    Redis    │
-    │   15        │              │  (Redisson) │
-    │ + Flyway    │              │  Dist. Lock │
-    └─────────────┘              └─────────────┘
+ │ │
+ ┌──────┴──────┐ ┌──────┴──────┐
+ │ PostgreSQL │ │ Redis │
+ │ 15 │ │ (Redisson) │
+ │ + Flyway │ │ Dist. Lock │
+ └─────────────┘ └─────────────┘
 ```
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Backend
 | Technology | Purpose |
@@ -114,46 +114,46 @@ BOS is a full-stack, production-ready system that covers the **complete lifecycl
 
 ---
 
-## 📦 Backend Modules
+## Backend Modules
 
 The backend follows a **Modular Monolith** architecture — 11 domain modules with clear boundaries:
 
 ```
 com.bus.system.modules
-├── identity/      → JWT auth, RBAC (ADMIN/STAFF/DRIVER/CUSTOMER)
-├── catalog/       → Provinces, bus stations, ticket offices, depots
-├── fleet/         → Bus types, vehicles, seat map (JSONB), insurance tracking
-├── hr/            → Driver profiles, license validation, driving-hour compliance
-├── planning/      → Routes, trip schedules, bitwise day-of-week config
-├── pricing/       → Fare config, holiday surcharge policies (JSONB conditions)
-├── operation/     → Trip generation, driver/bus assignment, 5-zone emergency dispatch
-├── sales/         → Seat reservation, booking lifecycle, ticket issuance, refunds
-├── payment/       → Payment gateway integration (VNPAY/MoMo QR)
-├── reports/       → Revenue analytics, load-factor KPIs (CTE + Native SQL)
-└── system/        → System configs, audit logging
+├── identity/ → JWT auth, RBAC (ADMIN/STAFF/DRIVER/CUSTOMER)
+├── catalog/ → Provinces, bus stations, ticket offices, depots
+├── fleet/ → Bus types, vehicles, seat map (JSONB), insurance tracking
+├── hr/ → Driver profiles, license validation, driving-hour compliance
+├── planning/ → Routes, trip schedules, bitwise day-of-week config
+├── pricing/ → Fare config, holiday surcharge policies (JSONB conditions)
+├── operation/ → Trip generation, driver/bus assignment, 5-zone emergency dispatch
+├── sales/ → Seat reservation, booking lifecycle, ticket issuance, refunds
+├── payment/ → Payment gateway integration (VNPAY/MoMo QR)
+├── reports/ → Revenue analytics, load-factor KPIs (CTE + Native SQL)
+└── system/ → System configs, audit logging
 ```
 
 ---
 
-## 🖥 Frontend — 3-Portal Architecture
+## Frontend — 3-Portal Architecture
 
 The frontend is split into **3 independent portals**, each optimized for its target audience:
 
-### 1. 🏢 Management Portal `/(admin)`
+### 1. Management Portal `/(admin)`
 - **Users:** Admin & Staff (desktop-optimized)
 - **Features:** Fleet management, route planning, trip scheduling, 5-zone emergency dispatch center, fare configuration, revenue dashboards with Recharts
 
-### 2. 🚗 Driver Portal `/(driver)`
+### 2. Driver Portal `/(driver)`
 - **Users:** Drivers only (mobile-first design)
 - **Features:** Today's trip view, vehicle handover forms (odometer + fuel), mid-route incident reporting
 
-### 3. 🎫 Booking Portal `/(public)`
+### 3. Booking Portal `/(public)`
 - **Users:** All visitors (responsive e-commerce UX)
 - **Features:** Trip search with autocomplete, interactive 2-deck seat map, shopping cart, QR payment with 10-min countdown timer, booking history
 
 ---
 
-## ⚡ Key Engineering Highlights
+## Key Engineering Highlights
 
 ### Concurrency Control — Seat Booking Race Condition
 ```
@@ -180,9 +180,9 @@ Implemented with **Strategy Pattern** (`TripChangeResolver`) for clean zone-spec
 ```sql
 -- Revenue aggregation bypasses JPA N+1 problem
 WITH revenue_cte AS (
-  SELECT DATE_TRUNC(:granularity, b.booking_date) as date, ...
-  FROM bookings b JOIN trips t ON b.trip_id = t.id
-  GROUP BY date, bus_type, seat_class
+ SELECT DATE_TRUNC(:granularity, b.booking_date) as date, ...
+ FROM bookings b JOIN trips t ON b.trip_id = t.id
+ GROUP BY date, bus_type, seat_class
 )
 SELECT * FROM revenue_cte ORDER BY date DESC;
 ```
@@ -192,14 +192,14 @@ SELECT * FROM revenue_cte ORDER BY date DESC;
 ### Partial Unique Indexes for Soft-Delete
 ```sql
 CREATE UNIQUE INDEX ticket_active_seat_idx 
-  ON ticket(trip_id, seat_number) 
-  WHERE status NOT IN ('CANCELLED', 'EXPIRED');
+ ON ticket(trip_id, seat_number) 
+ WHERE status NOT IN ('CANCELLED', 'EXPIRED');
 ```
 Enables seat reuse after cancellation without violating uniqueness constraints.
 
 ---
 
-## 🗄 Database Design
+## Database Design
 
 **30+ tables** organized in 5 clusters with enterprise patterns:
 
@@ -220,7 +220,7 @@ Enables seat reuse after cancellation without violating uniqueness constraints.
 
 ---
 
-## 🚀 Getting Started (Local)
+## Getting Started (Local)
 
 ### Prerequisites
 - Docker & Docker Compose
@@ -274,7 +274,7 @@ We provide utility scripts to make this seamless:
 
 ---
 
-## 🌍 Production Deployment
+## Production Deployment
 
 To deploy the system to a production environment (VPS/Cloud like AWS, DigitalOcean), you must set up an Nginx Reverse Proxy with HTTPS.
 
@@ -284,15 +284,15 @@ You MUST override the default credentials and secrets before starting the contai
 **Backend (`backend/src/main/resources/application-prod.yml` or `.env`):**
 ```yaml
 spring:
-  datasource:
-    url: jdbc:postgresql://postgres:5432/bos_db
-    username: admin
-    password: <YOUR_SECURE_DB_PASSWORD>
+ datasource:
+ url: jdbc:postgresql://postgres:5432/bos_db
+ username: admin
+ password: <YOUR_SECURE_DB_PASSWORD>
 app:
-  jwtSecret: <YOUR_NEW_SECURE_JWT_SECRET_32_CHARS_MIN>
+ jwtSecret: <YOUR_NEW_SECURE_JWT_SECRET_32_CHARS_MIN>
 cors:
-  allowed:
-    origins: "https://yourdomain.com"
+ allowed:
+ origins: "https://yourdomain.com"
 ```
 
 **Frontend (`frontend/.env.production`):**
@@ -307,30 +307,30 @@ Install Nginx and Certbot, then create `/etc/nginx/sites-available/bos`:
 ```nginx
 # Backend API
 server {
-    listen 80;
-    server_name api.yourdomain.com;
+ listen 80;
+ server_name api.yourdomain.com;
 
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+ location / {
+ proxy_pass http://localhost:8080;
+ proxy_set_header Host $host;
+ proxy_set_header X-Real-IP $remote_addr;
+ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+ proxy_set_header X-Forwarded-Proto $scheme;
+ }
 }
 
 # Frontend Next.js
 server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
+ listen 80;
+ server_name yourdomain.com www.yourdomain.com;
 
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+ location / {
+ proxy_pass http://localhost:3000;
+ proxy_set_header Host $host;
+ proxy_set_header X-Real-IP $remote_addr;
+ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+ proxy_set_header X-Forwarded-Proto $scheme;
+ }
 }
 ```
 
@@ -348,7 +348,7 @@ docker-compose -f docker-compose.yml up --build -d
 
 ---
 
-## 📚 API Documentation
+## API Documentation
 
 Interactive API documentation is available via **Swagger UI** at:
 ```
@@ -369,40 +369,40 @@ http://localhost:8080/swagger-ui/index.html
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 bus-operation-system/
 ├── backend/
-│   ├── src/main/java/com/bus/system/
-│   │   ├── config/          # Security, CORS, Redis, QueryDSL config
-│   │   ├── common/          # Shared DTOs, exceptions, utilities
-│   │   └── modules/         # 11 domain modules (see above)
-│   ├── src/main/resources/
-│   │   ├── db/migration/    # Flyway SQL migrations
-│   │   ├── db/seed/         # Demo data seeding
-│   │   └── application.yml  # App configuration
-│   ├── Dockerfile
-│   └── pom.xml
+│ ├── src/main/java/com/bus/system/
+│ │ ├── config/ # Security, CORS, Redis, QueryDSL config
+│ │ ├── common/ # Shared DTOs, exceptions, utilities
+│ │ └── modules/ # 11 domain modules (see above)
+│ ├── src/main/resources/
+│ │ ├── db/migration/ # Flyway SQL migrations
+│ │ ├── db/seed/ # Demo data seeding
+│ │ └── application.yml # App configuration
+│ ├── Dockerfile
+│ └── pom.xml
 ├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (admin)/     # Management Portal
-│   │   │   ├── (driver)/    # Driver Portal
-│   │   │   ├── (public)/    # Booking Portal
-│   │   │   └── (auth)/      # Login/Register
-│   │   ├── features/        # Feature-based modules
-│   │   ├── services/        # API clients & HTTP config
-│   │   └── middleware.ts     # Route-level RBAC guard
-│   ├── Dockerfile
-│   └── package.json
-├── docs/                    # Technical documentation
-└── docker-compose.yml       # Full-stack orchestration
+│ ├── src/
+│ │ ├── app/
+│ │ │ ├── (admin)/ # Management Portal
+│ │ │ ├── (driver)/ # Driver Portal
+│ │ │ ├── (public)/ # Booking Portal
+│ │ │ └── (auth)/ # Login/Register
+│ │ ├── features/ # Feature-based modules
+│ │ ├── services/ # API clients & HTTP config
+│ │ └── middleware.ts # Route-level RBAC guard
+│ ├── Dockerfile
+│ └── package.json
+├── docs/ # Technical documentation
+└── docker-compose.yml # Full-stack orchestration
 ```
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
@@ -411,5 +411,5 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ---
 
 <p align="center">
-  <sub>Built with ☕ Java, ⚛️ React, and 🐘 PostgreSQL</sub>
+ <sub>Built with Java, ️ React, and PostgreSQL</sub>
 </p>
