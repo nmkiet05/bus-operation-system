@@ -15,7 +15,7 @@ echo 4. Port 5050 (PgAdmin)
 echo 5. Custom Port
 echo 6. Exit
 echo.
-set /p choices="Select ports to check by number (space-separated, e.g. 1 2): "
+set /p choices="Select ports to check by number (comma-separated, e.g. 1,2): "
 if "%choices%"=="" goto menu
 if "%choices%"=="6" exit
 
