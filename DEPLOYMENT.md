@@ -1,109 +1,118 @@
 # Deployment Guide - BOS (Bus Operation System)
 
-## 📋 Tổng quan
-
-Hệ thống BOS có thể triển khai theo 2 cách:
-1. **Docker** (Development & Quick Deployment)
-2. **Production Server** (VPS/Cloud như AWS, DigitalOcean, Azure)
+Tài liệu hướng dẫn triển khai hệ thống Bus Operation System trên môi trường Local (Phát triển) và Production (Thực tế).
 
 ---
 
-## 🐳 Triển khai bằng Docker
+## 📋 Yêu Cầu Hệ Thống (Prerequisites)
 
-### Bước 1: Cấu hình Environment Variables
+- **Docker & Docker Compose** (Bắt buộc cho cả Local và Production nếu dùng Container)
+- **Java 21+** (Nếu chạy Backend native)
+- **Node.js 20+** (LTS) (Nếu chạy Frontend native)
+- **PostgreSQL 15+**
+- **Redis 7+**
 
-#### Backend (.env)
-```bash
-# Copy template
-cp backend/.env.example backend/.env
+---
 
-# Chỉnh sửa file backend/.env
-nano backend/.env
-```
+## 🐳 Triển Khai Môi Trường Local (Bằng Docker)
 
-**Lưu ý quan trọng:**
-- `APP_JWT_SECRET`: Tạo secret key mới cho production: `openssl rand -hex 32`
-- `CORS_ALLOWED_ORIGINS`: Thêm domain production của bạn
+Cách nhanh nhất để khởi chạy toàn bộ hệ thống (Database, Redis, Backend, Frontend) trên máy tính cá nhân.
 
-#### Frontend (.env.local)
-```bash
-# Copy template
-cp frontend/.env.example frontend/.env.local
+### Bước 1: Khởi Chạy Hệ Thống
 
-# Chỉnh sửa file frontend/.env.local
-nano frontend/.env.local
-```
-
-### Bước 2: Build và Chạy
+Tại thư mục gốc của dự án, mở Terminal/Command Prompt và chạy lệnh sau:
 
 ```bash
-# Build và chạy tất cả services
+# Build và chạy tất cả các dịch vụ (chạy ngầm)
 docker-compose up --build -d
+```
 
-# Kiểm tra logs
+### Bước 2: Kiểm Tra Trạng Thái
+
+```bash
+# Xem log của tất cả dịch vụ
 docker-compose logs -f
 
-# Dừng services
+# Xem trạng thái các container đang chạy
+docker ps
+```
+
+### Bước 3: Truy Cập Ứng Dụng
+
+Sau khi các container báo trạng thái `running`, bạn có thể truy cập:
+
+| Dịch Vụ | Địa Chỉ | Mô Tả |
+|---|---|---|
+| **Frontend** | `http://localhost:3000` | Giao diện Next.js cho Admin/User |
+| **Backend API** | `http://localhost:8080/api` | API Endpoint (Spring Boot) |
+| **Swagger UI** | `http://localhost:8080/swagger-ui/index.html` | Tài liệu API tự động |
+| **PgAdmin** | `http://localhost:5050` | Giao diện quản lý Database |
+
+*Lưu ý:* Thông tin đăng nhập PgAdmin mặc định là `admin@bos.com` / `Admin@123456` (được cấu hình trong `docker-compose.yml`).
+
+### Bước 4: Dừng Hệ Thống
+
+```bash
+# Dừng và gỡ bỏ các container
 docker-compose down
 ```
 
-### Bước 3: Truy cập
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8080/api
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **PgAdmin**: http://localhost:5050
-
 ---
 
-## 🚀 Triển khai lên Production Server
+## 🚀 Triển Khai Lên Production Server (VPS/Cloud)
 
-### Kiến trúc khuyến nghị
+Để đưa ứng dụng lên môi trường thực tế (như AWS EC2, DigitalOcean Droplet), chúng ta cần thiết lập Reverse Proxy và HTTPS.
 
-```
+### Kiến Trúc Production Đề Xuất
+
+```text
 [Client Browser] 
+    ↓ (HTTPS : 443)
+[Nginx Reverse Proxy]
     ↓
-[Nginx Reverse Proxy - Port 80/443]
-    ↓
-    ├─→ [Frontend - Port 3000]
-    └─→ [Backend API - Port 8080]
+    ├─→ [Frontend Next.js - Port 3000]
+    └─→ [Backend API Spring Boot - Port 8080]
          ↓
     ├─→ [PostgreSQL - Port 5432]
     └─→ [Redis - Port 6379]
 ```
 
-### Option 1: Docker trên Production Server
+### 1. Cấu Hình Environment Variables
 
-#### 1.1 Cấu hình Environment Variables
+Trước khi deploy, bạn PHẢI tạo/cập nhật các tệp môi trường (`.env`) và ghi đè cấu hình bảo mật.
 
-**Backend** (`backend/.env`):
-```bash
-SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bos_db
-CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-APP_JWT_SECRET=<your-new-production-secret-here>
+**Backend (`backend/src/main/resources/application-prod.yml` hoặc `.env`):**
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/bos_db
+    username: admin
+    password: <MẬT_KHẨU_DB_THẬT>
+app:
+  jwtSecret: <TẠO_CHUỖI_BÍ_MẬT_MỚI_DÀI_ÍP_NHẤT_32_KÝ_TỰ>
+cors:
+  allowed:
+    origins: "https://yourdomain.com"
 ```
 
-**Frontend** (`frontend/.env.production`):
-```bash
+**Frontend (`frontend/.env.production`):**
+```env
 NEXT_PUBLIC_API_URL=https://api.yourdomain.com/api
-WATCHPACK_POLLING=false
 NODE_ENV=production
 ```
 
-**Docker Compose** (`docker-compose.yml`):
-Cập nhật environment variables:
-```yaml
-backend:
-  environment:
-    CORS_ALLOWED_ORIGINS: https://yourdomain.com
+### 2. Thiết Lập Nginx Reverse Proxy (Kèm SSL)
+
+Cài đặt Nginx và Certbot trên server:
+```bash
+sudo apt update
+sudo apt install nginx certbot python3-certbot-nginx
 ```
 
-#### 1.2 Setup Nginx Reverse Proxy
-
-Tạo file `/etc/nginx/sites-available/bos`:
+Tạo file cấu hình `/etc/nginx/sites-available/bos`:
 
 ```nginx
-# Backend API
+# Cấu hình cho Backend API
 server {
     listen 80;
     server_name api.yourdomain.com;
@@ -117,7 +126,7 @@ server {
     }
 }
 
-# Frontend
+# Cấu hình cho Frontend Next.js
 server {
     listen 80;
     server_name yourdomain.com www.yourdomain.com;
@@ -132,196 +141,46 @@ server {
 }
 ```
 
-Enable site và SSL:
+Kích hoạt cấu hình và cấp chứng chỉ SSL:
 ```bash
-# Enable site
 sudo ln -s /etc/nginx/sites-available/bos /etc/nginx/sites-enabled/
-
-# Install SSL với Let's Encrypt
-sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com -d api.yourdomain.com
-
-# Restart nginx
 sudo systemctl restart nginx
 ```
 
-#### 1.3 Deploy
+### 3. Deploy Bằng Docker Compose (Production)
+
+Tại máy chủ, clone code về và chạy:
 
 ```bash
-# Pull code mới nhất
-git pull origin main
+git clone https://github.com/nmkiet05/bus-operation-system.git
+cd bus-operation-system
 
-# Rebuild và deploy
-docker-compose down
-docker-compose up --build -d
-
-# Check logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
+# Chạy build
+docker-compose -f docker-compose.yml up --build -d
 ```
 
 ---
 
-### Option 2: Native Deployment (không dùng Docker)
+## 🔧 Xử Lý Sự Cố Thường Gặp (Troubleshooting)
 
-#### 2.1 Backend Setup
+### 1. Lỗi CORS (Cross-Origin Resource Sharing)
+**Triệu chứng:** Frontend gọi API nhưng trình duyệt báo đỏ lỗi `CORS policy blocked`.
+**Giải pháp:** Đảm bảo biến `CORS_ALLOWED_ORIGINS` của Backend đã bao gồm đúng chính xác Domain của Frontend (VD: `https://yourdomain.com`). Không được có dấu `/` ở cuối.
 
-**Yêu cầu:**
-- Java 21+
-- PostgreSQL 15+
-- Redis
+### 2. Frontend Không Thể Fetch Data
+**Triệu chứng:** Màn hình loading mãi hoặc trắng trang.
+**Giải pháp:** Kiểm tra biến `NEXT_PUBLIC_API_URL` trong Frontend. Biến này dùng để trình duyệt gọi thẳng đến Backend, do đó nó phải là địa chỉ Public (VD: `https://api.yourdomain.com/api` hoặc `http://localhost:8080/api`), không được dùng `http://backend:8080/api` (vì trình duyệt không hiểu Docker networking).
 
-**Build:**
-```bash
-cd backend
-./mvnw clean package -DskipTests
-
-# Chạy JAR file
-java -jar target/backend-0.0.1-SNAPSHOT.jar \
-  --spring.datasource.url=jdbc:postgresql://localhost:5432/bos_db \
-  --spring.datasource.username=admin \
-  --spring.datasource.password=YourPassword \
-  --app.jwtSecret=YourProductionSecret \
-  --cors.allowed.origins=https://yourdomain.com
-```
-
-Hoặc dùng systemd service (`/etc/systemd/system/bos-backend.service`):
-```ini
-[Unit]
-Description=BOS Backend Service
-After=postgresql.service redis.service
-
-[Service]
-Type=simple
-User=deploy
-WorkingDirectory=/var/www/bos/backend
-Environment="SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/bos_db"
-Environment="CORS_ALLOWED_ORIGINS=https://yourdomain.com"
-ExecStart=/usr/bin/java -jar /var/www/bos/backend/target/backend.jar
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-#### 2.2 Frontend Setup
-
-**Yêu cầu:**
-- Node.js 24+
-
-**Build:**
-```bash
-cd frontend
-
-# Tạo production build
-npm run build
-
-# Chạy production server
-npm run start
-```
-
-Hoặc dùng PM2:
-```bash
-# Install PM2
-npm install -g pm2
-
-# Start app
-pm2 start npm --name "bos-frontend" -- start
-
-# Save PM2 config
-pm2 save
-pm2 startup
-```
+### 3. Database Double-Booking / Lỗi Lock
+**Triệu chứng:** Màn hình đặt vé báo lỗi `Lock acquisition failed`.
+**Giải pháp:** Đảm bảo container Redis đang chạy khỏe mạnh. Kiểm tra logs: `docker logs bos_redis`. Nếu Redis chết, tính năng chống Double-booking sẽ từ chối bán vé để đảm bảo an toàn toàn vẹn dữ liệu.
 
 ---
 
-## 🔧 Troubleshooting
+## 🔐 Check-List Bảo Mật Trực Tuyến
 
-### 1. CORS Error
-**Triệu chứng:** Browser console hiện "CORS policy blocked"
-
-**Giải pháp:**
-```bash
-# Kiểm tra CORS_ALLOWED_ORIGINS trong backend
-docker exec bos_backend printenv CORS_ALLOWED_ORIGINS
-
-# Nếu sai, cập nhật docker-compose.yml và restart
-docker-compose restart backend
-```
-
-### 2. API Connection Failed
-**Triệu chứng:** Frontend không kết nối được backend
-
-**Checklist:**
-- [ ] Backend đang chạy? `docker ps` hoặc `curl http://localhost:8080/api/catalog/stations`
-- [ ] NEXT_PUBLIC_API_URL đúng chưa? Phải là domain có thể access từ browser
-- [ ] CORS configured đúng chưa?
-
-### 3. Database Connection Error
-```bash
-# Kiểm tra PostgreSQL
-docker exec bos_postgres pg_isready
-
-# Kiểm tra credentials
-docker exec -it bos_postgres psql -U admin -d bos_db
-```
-
----
-
-## 📊 Monitoring & Logs
-
-### Docker Logs
-```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-```
-
-### Backend Health Check
-```bash
-# API status
-curl http://localhost:8080/actuator/health
-
-# Swagger UI
-http://localhost:8080/swagger-ui.html
-```
-
----
-
-## 🔐 Security Checklist
-
-Trước khi deploy production:
-
-- [ ] Đã đổi `APP_JWT_SECRET` thành giá trị mới
-- [ ] Đã đổi database password mặc định
-- [ ] Đã cấu hình CORS đúng với domain production
-- [ ] Đã enable HTTPS/SSL
-- [ ] Đã disable `show-sql` trong application.yml (production)
-- [ ] Đã set `logging.level.root=WARN` (production)
-- [ ] Không commit file `.env` vào Git
-
----
-
-## 📝 Cheat Sheet
-
-```bash
-# Development
-docker-compose up -d              # Start all services
-docker-compose logs -f backend    # View backend logs
-docker-compose restart backend    # Restart backend only
-docker-compose down               # Stop all services
-
-# Production rebuild
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
-
-# Database backup
-docker exec bos_postgres pg_dump -U admin bos_db > backup.sql
-
-# Database restore
-docker exec -i bos_postgres psql -U admin bos_db < backup.sql
-```
+- [ ] KHÔNG commit các file `.env` thực chứa mật khẩu lên Github.
+- [ ] Xóa bỏ/Sửa thông tin mặc định của tài khoản Database (`admin/Admin@123456`) trong `docker-compose.yml` trước khi chạy thực tế.
+- [ ] Chắc chắn rằng cổng `5432` (Postgres) và `6379` (Redis) không bị phơi bày ra mạng Internet (Nên chặn bằng Firewall ufw, chỉ cho Docker internal network gọi).
+- [ ] Tắt tính năng in câu lệnh SQL (`spring.jpa.show-sql=false`) trên Production để tránh rò rỉ cấu trúc DB và tiết kiệm tài nguyên ghi log.
