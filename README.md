@@ -404,7 +404,9 @@ bus-operation-system/
 
 ## 📄 License
 
-This project was developed as a thesis project at **Can Tho University** — Faculty of Information Technology.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+*Originally developed as a thesis project at **Can Tho University** — Faculty of Information Technology.*
 
 ---
 
