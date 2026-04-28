@@ -1,0 +1,10 @@
+spring:
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    com.bus.system: INFO

@@ -1,0 +1,147 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: bus-operation-system
+
+  # 1. Cấu hình Database
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bos_db
+    username: admin
+    password: Admin@123456
+    driver-class-name: org.postgresql.Driver
+
+  # 2. JPA / Hibernate
+  jpa:
+    open-in-view: false
+    show-sql: true # Bật lại để debug nhanh
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
+  # 3. Flyway
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/seed
+    baseline-on-migrate: true
+    # Tự động drop DB và chạy lại từ đầu nếu file V1 hoặc V999 bị sửa code (Cực kỳ tiện cho Dev Local)
+    clean-on-validation-error: true
+    clean-disabled: false
+
+# ======================================================
+# 4. CẤU HÌNH JWT (BẮT BUỘC CHO MODULE AUTH)
+# ======================================================
+
+
+# ======================================================
+# 5. CẤU HÌNH BOOKING (Business Logic - dễ dàng điều chỉnh)
+# ======================================================
+booking:
+  # Thời gian giữ chỗ (phút)
+  # - Giờ cao điểm: có thể giảm xuống 10 để tăng tính cạnh tranh
+  # - Giờ thấp điểm: có thể tăng lên 30 để tăng conversion rate
+  expiry-minutes: 15
+
+  # Cấu hình Distributed Lock
+  lock:
+    wait-timeout-seconds: 10  # Timeout để acquire lock
+    lease-time-seconds: 300    # Lock lease time (5 phút)
+
+  # Cấu hình Redis Cache
+  cache:
+    idempotency-ttl-hours: 1  # TTL của idempotency key cache
+
+# ======================================================
+# 6. CẤU HÌNH APPLICATION (App-wide settings)
+# ======================================================
+app:
+  # JWT Configuration
+  jwtSecret: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
+  jwtExpirationMs: 86400000
+  jwtRefreshExpirationMs: 604800000  # 7 days
+
+  # Pagination
+  pagination:
+    default-page: 0
+    default-page-size: 20
+    max-page-size: 100
+  
+  # Date/Time Formats
+  format:
+    date-format: "dd/MM/yyyy"
+    time-format: "HH:mm"
+    datetime-format: "dd/MM/yyyy HH:mm"
+    iso-datetime-format: "yyyy-MM-dd'T'HH:mm:ss"
+  
+  # Validation Regex
+  validation:
+    phone-regex: "^(0|\\+84)[0-9]{9}$"
+    license-plate-regex: "^[0-9]{2}[A-Z]-[0-9]{4,5}$"
+    cccd-regex: "^[0-9]{12}$"
+
+# ======================================================
+# 7. CẤU HÌNH OPERATION MODULE
+# ======================================================
+operation:
+  # Trip Generation & Scheduling
+  trip-generation:
+    max-generation-days: 31
+    min-schedule-gap-minutes: 60
+    min-safe-gap-minutes: 30
+  
+  # Trip Change & Handover
+  trip-change:
+    anti-spam-cooldown-minutes: 15
+    rollback-window-minutes: 30
+    urgent-window-minutes: 60
+    handover-gap-minutes: 15
+    escalation-timeout-minutes: 10
+  
+  # Driver Duty (Nghị định 10/2020/NĐ-CP)
+  driver-duty:
+    max-daily-driving-minutes: 600    # 10h/ngày
+    max-continuous-driving-minutes: 240  # 4h liên tục
+    rest-time-threshold-minutes: 15
+    max-weekly-driving-minutes: 2880  # 48h/tuần
+
+# ======================================================
+# 8. SEED RUNNER (VALID PACK / NEGATIVE PACK)
+# ======================================================
+seed:
+  runner:
+    enabled: false
+    dry-run: true
+    auto-load-demo-on-startup: false
+    pack: BOTH # VALID_PACK | NEGATIVE_PACK | BOTH
+    legacy-data-strategy: BACKUP_AND_REPLACE # REPAIR_IN_PLACE | BACKUP_AND_REPLACE
+    customer-count: 2000
+    driver-count: 60
+    dispatcher-count: 12
+    max-negative-cases: 200
+
+# ======================================================
+# 9. SECURITY & RATE LIMITING
+# ======================================================
+security:
+  rate-limit:
+    enabled: true
+    max-requests-per-minute: 60
+    local-cache-size: 10000
+    trusted-proxies: "127.0.0.1,10.,192.168."
+
+# ======================================================
+# 10. LOGGING (Để debug lỗi đăng nhập/phân quyền)
+# ======================================================
+logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG
+    org.springframework.web: INFO
+    com.bus.system: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.transaction: TRACE
