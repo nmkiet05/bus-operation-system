@@ -270,6 +270,8 @@ We provide utility scripts to make this seamless:
 3. Choose `Y` when prompted to rebuild the Docker containers with the new IP.
 4. Connect your phone to the same Wi-Fi network, open your mobile browser, and access `http://<your-ip>:3000` to book tickets and scan the QR code!
 
+> **Security Note:** When you are done testing, remember to run `firewall-manager.bat` and select **Option 3** (Block LAN Access) to secure your PC.
+
 ---
 
 ## 🌍 Production Deployment
