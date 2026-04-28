@@ -36,15 +36,40 @@ echo ============================================
 echo        BOS - PORT MANAGER (Interactive)
 echo ============================================
 echo.
-echo Common Ports: 3000 (Frontend), 8080 (Backend), 5432 (DB), 5050 (PgAdmin)
+echo 1. Port 3000 (Frontend)
+echo 2. Port 8080 (Backend)
+echo 3. Port 5432 (Database)
+echo 4. Port 5050 (PgAdmin)
+echo 5. Custom Port
+echo 6. Exit
+echo.
 echo Leave blank to show CLI Help Menu.
-set /p input_ports="Enter ports (e.g. 3000,8080): "
+set /p input_choices="Select ports by number (comma-separated, e.g. 1,2): "
 
-if "%input_ports%"=="" goto help
+if "%input_choices%"=="" goto help
+if "%input_choices%"=="6" exit /b
 
-set "PORTS=%input_ports:,= %"
+set "PORTS="
+set "input_choices=!input_choices:,= !"
+for %%C in (!input_choices!) do (
+    if "%%C"=="1" set PORTS=!PORTS! 3000
+    if "%%C"=="2" set PORTS=!PORTS! 8080
+    if "%%C"=="3" set PORTS=!PORTS! 5432
+    if "%%C"=="4" set PORTS=!PORTS! 5050
+    if "%%C"=="5" (
+        set /p custom="Enter custom port: "
+        set PORTS=!PORTS! !custom!
+    )
+)
+
+if "!PORTS!"=="" (
+    echo [ERROR] Invalid selection!
+    pause
+    goto interactive
+)
 
 echo.
+echo Selected Ports: !PORTS!
 echo Options:
 echo  [c]  Check status only
 echo  [r]  Remove (Kill) processes
@@ -130,6 +155,7 @@ echo.
 echo Flags (Linux-style):
 echo   -c   Check port status (Default if no flag provided)
 echo   -r   Remove (Kill) processes on the port
+echo   -cr  Check and Remove (Combines both actions)
 echo.
 echo Examples:
 echo   port-manager.bat 3000,8080 -c    (Checks ports 3000 and 8080)
