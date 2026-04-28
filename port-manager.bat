@@ -8,23 +8,37 @@ echo ============================================
 echo             BOS - PORT MANAGER
 echo ============================================
 echo.
-echo Recommended Ports:
-echo   - 3000 (Frontend)
-echo   - 8080 (Backend)
-echo   - 5432 (Database)
-echo   - 5050 (PgAdmin)
+echo 1. Port 3000 (Frontend)
+echo 2. Port 8080 (Backend)
+echo 3. Port 5432 (Database)
+echo 4. Port 5050 (PgAdmin)
+echo 5. Custom Port
+echo 0. Exit
 echo.
-echo Type the port number(s) you want to manage.
-echo (You can type multiple ports, e.g: 3000 8080)
-echo Or type 0 to Exit.
-echo.
-set /p PORTS="Enter Port(s): "
+set /p choices="Select ports by number (e.g. 1 2): "
 
-if "%PORTS%"=="0" exit /b
-if "%PORTS%"=="" goto menu
+if "%choices%"=="0" exit /b
+if "%choices%"=="" goto menu
 
-:: Normalize commas to spaces just in case
-set "PORTS=!PORTS:,= !"
+:: Parse choices to port numbers
+set "PORTS="
+set "choices=!choices:,= !"
+for %%C in (!choices!) do (
+    if "%%C"=="1" set PORTS=!PORTS! 3000
+    if "%%C"=="2" set PORTS=!PORTS! 8080
+    if "%%C"=="3" set PORTS=!PORTS! 5432
+    if "%%C"=="4" set PORTS=!PORTS! 5050
+    if "%%C"=="5" (
+        set /p custom="Enter custom port number: "
+        set PORTS=!PORTS! !custom!
+    )
+)
+
+if "!PORTS!"=="" (
+    echo [ERROR] Invalid selection!
+    pause
+    goto menu
+)
 
 :action_menu
 cls
