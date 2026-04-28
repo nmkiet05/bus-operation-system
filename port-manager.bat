@@ -8,42 +8,37 @@ echo ============================================
 echo             BOS - PORT MANAGER
 echo ============================================
 echo.
-echo 1. Port 3000 (Frontend)
-echo 2. Port 8080 (Backend)
-echo 3. Port 5432 (Database)
-echo 4. Port 5050 (PgAdmin)
-echo 5. Custom Port
-echo 0. Exit
+echo Recommended Ports:
+echo   [1] 3000 (Frontend)
+echo   [2] 8080 (Backend)
+echo   [3] 5432 (Database)
+echo   [4] 5050 (PgAdmin)
 echo.
-set /p choices="Select ports by number (e.g. 1 2): "
+echo Type shortcut numbers (1-4) or actual port numbers.
+echo Multiple values separated by space (e.g. 1 2 or 3000 8080)
+echo Type 0 to Exit.
+echo.
+set /p input="Enter Port(s): "
 
-if "%choices%"=="0" exit /b
-if "%choices%"=="" goto menu
+if "%input%"=="0" exit /b
+if "%input%"=="" goto menu
 
-:: Parse choices to port numbers
+:: Parse input: map shortcuts 1-4 to real ports, keep others as-is
 set "PORTS="
-set "choices=!choices:,= !"
-for %%C in (!choices!) do (
-    if "%%C"=="1" set PORTS=!PORTS! 3000
-    if "%%C"=="2" set PORTS=!PORTS! 8080
-    if "%%C"=="3" set PORTS=!PORTS! 5432
-    if "%%C"=="4" set PORTS=!PORTS! 5050
-    if "%%C"=="5" (
-        set /p custom="Enter custom port number: "
-        set PORTS=!PORTS! !custom!
+set "input=!input:,= !"
+for %%V in (!input!) do (
+    if "%%V"=="1" ( set PORTS=!PORTS! 3000
+    ) else if "%%V"=="2" ( set PORTS=!PORTS! 8080
+    ) else if "%%V"=="3" ( set PORTS=!PORTS! 5432
+    ) else if "%%V"=="4" ( set PORTS=!PORTS! 5050
+    ) else ( set PORTS=!PORTS! %%V
     )
-)
-
-if "!PORTS!"=="" (
-    echo [ERROR] Invalid selection!
-    pause
-    goto menu
 )
 
 :action_menu
 cls
 echo ============================================
-echo   SELECTED PORTS: !PORTS!
+echo   SELECTED PORTS:!PORTS!
 echo ============================================
 echo.
 echo 1. CHECK port status
@@ -85,11 +80,8 @@ for %%P in (!PORTS!) do (
     if "!process_found!"=="0" (
         echo [Port %%P] STATUS: FREE ^(Not in use^)
     ) else (
-        if !DO_CHECK!==1 (
-            echo [Port %%P] STATUS: IN USE ^(PID: !pid!^)
-        )
+        echo [Port %%P] STATUS: IN USE ^(PID: !pid!^)
         if !DO_KILL!==1 (
-            echo [Port %%P] STATUS: IN USE ^(PID: !pid!^)
             echo [Port %%P] ACTION: Killing process...
             taskkill /PID !pid! /F >nul 2>&1
             echo [Port %%P] RESULT: Port is now FREE!
