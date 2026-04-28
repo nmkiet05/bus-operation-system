@@ -36,6 +36,7 @@ echo ============================================
 echo        BOS - PORT MANAGER (Interactive)
 echo ============================================
 echo.
+echo Common Ports: 3000 (Frontend), 8080 (Backend), 5432 (DB), 5050 (PgAdmin)
 echo Leave blank to show CLI Help Menu.
 set /p input_ports="Enter ports (e.g. 3000,8080): "
 
