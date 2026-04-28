@@ -8,34 +8,13 @@ echo ============================================
 echo        BOS - PORT MANAGER
 echo ============================================
 echo.
-echo 1. Port 3000 (Frontend)
-echo 2. Port 8080 (Backend)
-echo 3. Port 5432 (Database)
-echo 4. Port 5050 (PgAdmin)
-echo 5. Custom Port
-echo 6. Exit
+echo Common Ports: 3000 (Frontend), 8080 (Backend), 5432 (DB), 5050 (PgAdmin)
 echo.
-set /p choices="Select ports to check by number (comma-separated, e.g. 1,2): "
-if "%choices%"=="" goto menu
-if "%choices%"=="6" exit
+set /p TARGET_PORTS="Enter port numbers directly (e.g. 3000,8080) or leave blank to exit: "
+if "%TARGET_PORTS%"=="" exit
 
-set TARGET_PORTS=
-for %%C in (%choices%) do (
-    if "%%C"=="1" set TARGET_PORTS=!TARGET_PORTS! 3000
-    if "%%C"=="2" set TARGET_PORTS=!TARGET_PORTS! 8080
-    if "%%C"=="3" set TARGET_PORTS=!TARGET_PORTS! 5432
-    if "%%C"=="4" set TARGET_PORTS=!TARGET_PORTS! 5050
-    if "%%C"=="5" (
-        set /p custom="Enter custom port: "
-        set TARGET_PORTS=!TARGET_PORTS! !custom!
-    )
-)
-
-if "!TARGET_PORTS!"=="" (
-    echo [ERROR] Invalid selection!
-    pause
-    goto menu
-)
+:: Replace commas with spaces so the loop works perfectly
+set TARGET_PORTS=!TARGET_PORTS:,= !
 
 cls
 echo ============================================
@@ -45,7 +24,7 @@ echo.
 
 for %%P in (!TARGET_PORTS!) do (
     set "process_found=0"
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%%P ^| findstr LISTENING') do (
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr LISTENING ^| findstr ":%%P "') do (
         set "process_found=1"
         set "pid=%%a"
     )
