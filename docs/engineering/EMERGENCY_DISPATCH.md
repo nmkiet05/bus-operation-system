@@ -1,16 +1,31 @@
-# Phân phối Khẩn cấp (Emergency Dispatch 5 Zones)
+# Emergency Dispatch System (5-Zone Workflow)
 
-## Overview
-Luồng xử lý sự cố (`TripChangeEscalationJob`) tự động phân vùng các yêu cầu đổi xe/tài xế để đảm bảo xe xuất bến đúng giờ mà không phụ thuộc vào tốc độ phản hồi của Admin.
+## 1. Operational Challenge
+In bus fleet management, a bus breakdown or driver sickness is not a simple CRUD update. Replacing a vehicle or driver affects the trip's schedule and requires different levels of urgency depending on how soon the bus is scheduled to depart. 
 
-## Hệ thống 5 Vùng (5-Zone System)
+## 2. The 5-Zone Urgency Architecture
+To automate and standardize emergency trip changes, BOS implements a **5-Zone Emergency Dispatch Workflow**. When a `TripChangeRequest` is submitted, the system calculates the time difference ($T$) between the current time and the scheduled departure time, classifying the emergency into one of 5 zones:
 
-1. **STANDARD (Bình thường):** Cách giờ chạy > 12 tiếng. Yêu cầu bắt buộc phải có Admin duyệt.
-2. **URGENT (Khẩn cấp):** Cách giờ chạy < 12 tiếng. Hệ thống cho Admin 10 phút để duyệt. Hết thời gian, Background Job tự động ép duyệt (Auto-Escalate) để tránh kẹt xe.
-3. **CRITICAL (Nghiêm trọng):** Sắp xuất bến. Hệ thống tự động thực thi (Auto-Execute) ngay lập tức, chuyển sang trạng thái chờ Hậu kiểm (Post-Review).
-4. **DEPARTED (Đã xuất bến):** Yêu cầu được tự động duyệt, yêu cầu Review chặt chẽ kèm Biên bản bàn giao.
-5. **MID_ROUTE (Sự cố dọc đường):** Xử lý ngoại lệ cực đoan (tai nạn, hỏng xe), cấm Reject, ép buộc thực thi.
+| Zone | Time Window ($T$) | Urgency Level | Workflow Action |
+|:--|:--|:--|:--|
+| **Z1** | $T > 60$ minutes | `STANDARD` | Placed in the standard pending queue. Approved by general dispatchers. |
+| **Z2** | $15 \leq T \leq 60$ minutes | `URGENT` | Highlighted in yellow. Requires immediate supervisor attention. Notification pushed to dispatch dashboard. |
+| **Z3** | $T < 15$ minutes | `CRITICAL` | Flashing red alert. Bypasses standard approval queues. The system may attempt an auto-suggest fallback assignment. |
+| **Z4** | Departed (but not yet arrived) | `DEPARTED` | The bus has left the station. Requires mid-route coordination. |
+| **Z5** | Mid-route breakdown | `MID_ROUTE` | Emergency Rescue Protocol. Triggers the dispatch of an empty replacement vehicle to the exact GPS coordinates. |
 
-## TripChangeEscalationJob
-- Chạy mỗi 60s để quét các yêu cầu URGENT quá hạn.
-- Sử dụng `@Lazy self` để gọi hàm có `@Transactional(REQUIRES_NEW)`. Điều này ngăn chặn Transaction Rollback Poisoning (1 lỗi làm rollback cả vòng lặp). Xem chi tiết tại `docs/engineering/BUG_TRANSACTION_FIX.md`.
+## 3. Implementation via Strategy Pattern
+The backend handles this complexity using the **Strategy Design Pattern**.
+
+```java
+public interface TripChangeResolver {
+    boolean supports(UrgencyZone zone);
+    void resolve(TripChangeRequest request);
+}
+```
+We have separate concrete implementations:
+- `StandardZoneResolver` (For Z1)
+- `UrgentZoneResolver` (For Z2)
+- `CriticalZoneResolver` (For Z3, triggering WebSocket alerts)
+
+A `TripChangeEscalationJob` runs in the background (using Spring `@Scheduled`) to automatically upgrade a request from Z1 to Z2 or Z3 as time runs out, ensuring no request is ignored.

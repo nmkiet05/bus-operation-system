@@ -1,19 +1,59 @@
-# Xử lý Đồng thời (Concurrency Control)
+# Concurrency Control (Race Condition Prevention)
 
-## Overview
-Hệ thống sử dụng các kỹ thuật Distributed Lock (Khóa phân tán) và Idempotency để xử lý bài toán bán vé đồng thời, tránh 1 ghế bán cho 2 người (Double-booking) hoặc tính tiền 2 lần cho 1 thao tác.
+## 1. The Double-Booking Problem
+In a high-traffic bus ticketing system, especially during holiday seasons (e.g., Tet holiday), multiple users may attempt to select and book the exact same seat simultaneously. 
 
-## Chi tiết Triển khai
+If this is handled using standard database transactions without locks:
+1. User A checks if Seat 1 is available -> DB says YES.
+2. User B checks if Seat 1 is available -> DB says YES.
+3. User A books Seat 1.
+4. User B books Seat 1.
+**Result:** Double-booking (Overselling).
 
-### 1. Redis Idempotency
-- **Vấn đề:** Mạng lag khiến khách hàng nhấn nút "Đặt vé" 2 lần, hoặc App tự động Retry request.
-- **Giải pháp:** Client sinh ra một `idempotencyKey` (UUID). Backend dùng Redis lưu khóa này với hạn 1 giờ. Nếu request thứ 2 bay tới có cùng key, backend trả về luôn Booking ID cũ, bỏ qua việc tạo mới.
+## 2. Our Solution Architecture
 
-### 2. Redisson Distributed Lock (Chống Race Condition)
-- **Vấn đề:** Giới hạn của Lock SQL bình thường không đáp ứng nổi Flash Sale dịp Tết, đồng thời dễ sinh Deadlock.
-- **Giải pháp:** Sử dụng thư viện `Redisson`. 
-  - Khóa theo định dạng: `seat-lock:{tripId}:{seatNumber}`
-  - **Triệt tiêu Deadlock:** Danh sách ghế được `.sorted()` trước khi lock. Nếu A mua [Ghế 1, Ghế 2] và B mua [Ghế 2, Ghế 1], cả 2 luồng đều sẽ bị ép phải lấy khóa Ghế 1 trước. Người đến sau phải đợi thay vì tạo vòng lặp chết (Deadlock).
+To completely eliminate double-booking, BOS implements a **two-tier lock strategy**:
+1. **Tier 1 (Proactive Guard):** Redis Distributed Locks (via Redisson)
+2. **Tier 2 (Reactive Guard):** Optimistic Locking (via JPA `@Version`)
 
-### 3. Optimistic Locking
-- Là lớp bảo vệ cuối cùng bằng cột `@Version` trong database. Nếu Redis sập, Hibernate vẫn chặn lại được các thao tác update tranh chấp.
+### 2.1. Redis Distributed Lock (Redisson)
+When a user attempts to book a seat, the system requests a Distributed Lock from Redis.
+The lock key is structured dynamically: `lock:trip:{tripId}:seat:{seatNumber}`.
+
+- **Why Redis?** Redis is in-memory and extremely fast. It blocks concurrent requests at the API layer before they even hit the PostgreSQL database, dramatically reducing DB load during traffic spikes.
+- **Why Redisson?** Redisson provides a robust implementation of the `RLock` interface and handles lock expiration and thread wait times automatically.
+
+```java
+// Simplified logic
+String lockKey = "lock:trip:100:seat:A01";
+RLock lock = redissonClient.getLock(lockKey);
+
+try {
+    // Wait up to 3 seconds to acquire the lock, lease it for 10 seconds
+    if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
+        // Seat is locked. Proceed with booking transaction.
+        bookingService.createBooking(request);
+    } else {
+        throw new SeatTakenException("Seat is currently being booked by someone else.");
+    }
+} finally {
+    if (lock.isHeldByCurrentThread()) {
+        lock.unlock();
+    }
+}
+```
+
+### 2.2. JPA Optimistic Locking (@Version)
+If, for some extremely rare edge case (e.g., Redis cluster failover), the distributed lock is bypassed, PostgreSQL serves as the final barrier.
+
+In our `Ticket` entity, we have a `@Version` annotation:
+```java
+@Version
+private Long version;
+```
+If two concurrent transactions somehow read the same Ticket at `version=1` and both attempt to update its status to `BOOKED`, the first transaction will succeed and increment the version to `2`. The second transaction will fail with an `ObjectOptimisticLockingFailureException`, preventing the double-booking.
+
+## 3. Deadlock Prevention Strategy
+To prevent deadlocks when a user books multiple seats at once (e.g., Seat A01 and A02), the system **sorts the lock keys** lexicographically before acquiring them.
+
+By ensuring that all threads acquire locks in the exact same order (e.g., A01 then A02), cyclical wait conditions (Deadlocks) are mathematically impossible.
