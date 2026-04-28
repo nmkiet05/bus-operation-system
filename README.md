@@ -260,6 +260,16 @@ docker-compose up --build -d
 | Admin | `admin` | `root@123456` |
 | PgAdmin | `admin@bos.com` | `Admin@123456` |
 
+### Testing Mobile QR Payments (LAN)
+
+If you want to test the Ticket Booking flow and scan the payment QR code using your real smartphone, the system must be accessible over your local Wi-Fi network (LAN) instead of `localhost`. 
+
+We provide utility scripts to make this seamless:
+1. Run `firewall-manager.bat` (as Administrator) and select **Option 2** to open Windows Firewall ports for `3000` and `8080`.
+2. Run `update-ip.bat`. It will automatically detect your local IPv4 address (e.g., `192.168.1.x`) and inject it into the `docker-compose.yml` environment variables so your phone can reach the backend.
+3. Choose `Y` when prompted to rebuild the Docker containers with the new IP.
+4. Connect your phone to the same Wi-Fi network, open your mobile browser, and access `http://<your-ip>:3000` to book tickets and scan the QR code!
+
 ---
 
 ## 🌍 Production Deployment
