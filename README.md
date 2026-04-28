@@ -231,15 +231,17 @@ Enables seat reuse after cancellation without violating uniqueness constraints.
 ### Quick Start (Docker)
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/<your-username>/bus-operation-system.git
 cd bus-operation-system
 
-# Start all services (PostgreSQL, Redis, Backend, Frontend, PgAdmin)
-docker-compose up --build -d
+# 2. Start the system (One-Click)
+# For Windows: Just double-click the system-manager.bat file and select option 1.
+# Or run it from the terminal:
+.\system-manager.bat
 
-# Verify services are running
-docker ps
+# For Mac/Linux:
+docker-compose up --build -d
 ```
 
 ### Access Points
