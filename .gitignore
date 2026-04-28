@@ -14,3 +14,15 @@ Thumbs.db
 # Temp
 tmp/
 temp/
+
+# Build outputs
+backend/target/
+frontend/.next/
+frontend/node_modules/
+
+# Environment
+*.env
+*.env.local
+
+# Agent/AI
+.agent/
